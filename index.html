@@ -411,6 +411,8 @@ ul.otree ul::before{content:"";position:absolute;top:0;left:50%;border-left:2px 
 .bform{margin:4px 0 8px 32px;padding:10px 12px;background:var(--warn-bg);border:1px solid var(--warn);border-radius:var(--radius)}
 .bform.edit{background:var(--info-bg);border-color:var(--info)}
 @media (max-width:640px){.brow{grid-template-columns:18px 30px minmax(0,1fr);row-gap:4px}.brow .bocc,.brow .bacts{grid-column:3}.bacts{opacity:1}.brow{margin-left:calc(var(--d)*14px)}.bform{margin-left:8px}}
+.tmopt{display:block;padding:8px 0;border-top:1px dotted var(--line);cursor:pointer}.tmopt:first-child{border-top:0}
+.tmlist{display:flex;flex-direction:column;gap:4px;margin:6px 0 0 22px}.tmlist label{display:flex;gap:6px;align-items:center;font-size:13px}
 /* project chips + tray */
 .pchip{display:inline-flex;align-items:center;gap:5px;padding:2px 8px 2px 6px;border-radius:12px;background:var(--surface);border:1px solid var(--line2);font-size:10.5px;font-weight:600;cursor:grab;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis;color:var(--text)}
 .pchip i{width:7px;height:7px;border-radius:50%;background:var(--good);flex:none}.pchip.A i{background:var(--warn)}.pchip.R i{background:var(--bad)}
@@ -1157,7 +1159,7 @@ function vSettings(){
   <div class="panel"><div class="ph"><h2>Display</h2></div><div class="pb"><div class="row"><button class="btn sm" data-st="theme">Toggle dark / light</button><button class="btn sm" data-st="fullscreen">⤢ Full screen</button><button class="btn sm" data-st="switchrole">Switch role</button></div><p class="small muted" style="margin:10px 0 0">Version ${APP_VERSION} · EDGG Task Monitor · WRLD Capital Holdings</p></div></div>
   </div></div>`;
 }
-const APP_VERSION="1.6 (website)";
+const APP_VERSION="1.7 (website)";
 async function settingsAction(a){
   if(a==="savecfg"){let cfg;try{const t=$("#st_cfg").value.trim().replace(/^const\s+firebaseConfig\s*=\s*/,"").replace(/;\s*$/,"");cfg=Function("return ("+t+")")();}catch(e){toast("That is not a valid config object.");return;}if(!cfg||!cfg.databaseURL){toast("The config needs a databaseURL — enable Realtime Database first.");return;}
     try{localStorage.setItem(CFG_KEY,JSON.stringify(cfg));localStorage.setItem(WS_KEY,$("#st_ws").value.trim()||"edgg");}catch(e){}toast("Saved — reloading to connect");setTimeout(()=>location.reload(),600);return;}
@@ -1432,14 +1434,40 @@ async function quickAddProjects(names,target){
     S.projects.set(pj.id,pj);await saveProject(pj);}
   toast(`${list.length} project${list.length>1?"s":""} added`);
 }
-async function nameTeam(seatId){
+let TM=null;
+function nameTeam(seatId){
   const x=S.seats.get(seatId);if(!x||!isDirector())return;
-  askText(`Name the team under ${x.title}${seatPerson(x)?" — "+seatPerson(x):""}`,"Team name",async v=>{if(!v)return;
-    const st=JSON.parse(JSON.stringify(S.struct));const u={id:uid("su"),deptId:x.unit,parentId:x.sub||"",kind:"Team",name:v,order:st.subunits.length};st.subunits.push(u);await saveStruct(st);
-    const old=x.sub||"";const move=[x].concat([...descendants(x.id)].map(id=>S.seats.get(id)).filter(y=>y&&(y.sub||"")===old));
-    for(const y of move){const n=JSON.parse(JSON.stringify(y));n.sub=u.id;n.log=n.log||[];logEntry(n,"field",`Placed in team "${v}"`);await saveSeat(n);}
-    const m=Object.assign({},S.meta);m.pendingStructural=true;m.structuralNotes=(m.structuralNotes||[]).concat([`team "${v}" created under ${x.title}`]).slice(-12);await saveMeta(m);
-    toast(`Team "${v}" created — ${move.length} seat${move.length>1?"s":""} placed in it. Drag projects onto it or onto ${seatPerson(x)||x.title}.`);},{ok:"Create team"});
+  const reports=seatChildren(x.id);const old=x.sub||"";const own=[x].concat([...descendants(x.id)].map(id=>S.seats.get(id)).filter(y=>y&&(y.sub||"")===old));
+  const heads=x.sub&&subHead(x.sub)&&subHead(x.sub).id===x.id?subunit(x.sub):null;
+  TM={seatId};
+  $("#modals").innerHTML=`<div class="ov" id="ov"><div class="dlg narrow" role="dialog" style="width:min(560px,100%)"><div class="dh"><h2>Name a unit or team</h2><button class="x" data-close aria-label="Close">×</button></div><div class="db">
+    <div class="note">Two different things can be named from <b>${esc(x.title)}${seatPerson(x)?" — "+esc(seatPerson(x)):""}</b>: the unit this person <i>heads</i> (everyone under them), or a team <i>under</i> this person made of some of their reports.</div>
+    <div class="field"><label>Name</label><input type="text" id="tm_name" placeholder="e.g. PROJECT DEVELOPMENT - BATAAN, or Asiana PET"></div>
+    <div class="grid g2" style="margin-top:8px"><div class="field"><label>Kind</label><select id="tm_kind">${SUB_KINDS.map(k=>`<option ${k===(reports.length&&!x.sub?"Territory":"Team")?"selected":""}>${k}</option>`).join("")}</select></div></div>
+    <div class="sub"><label class="tmopt"><input type="radio" name="tm_mode" value="heads" ${heads?"":"checked"}> <b>${esc(seatPerson(x)||x.title)} heads it</b><div class="small muted">Covers this seat and the ${own.length-1} seat${own.length-1===1?"":"s"} under it that are not already in a unit of their own.${heads?` This seat already heads <b>${esc(heads.name)}</b> — choose this to rename it.`:""}</div></label>
+      <label class="tmopt"><input type="radio" name="tm_mode" value="under" ${heads?"checked":""} ${reports.length?"":"disabled"}> <b>A team under ${esc(seatPerson(x)||x.title)}</b><div class="small muted">Pick which direct reports belong to it; each brings their own reports. The first one ticked leads the team.</div>
+      <div class="tmlist">${reports.map(r=>`<label><input type="checkbox" data-tm-member="${r.id}"> ${esc(r.title)}${seatPerson(r)?" — "+esc(seatPerson(r)):""}${r.sub?` <span class="small muted">(now in ${esc(subLabel(r.sub))})</span>`:""}</label>`).join("")||`<span class="small muted">No direct reports yet.</span>`}</div></label></div>
+  </div><div class="df"><span class="spacer"></span><button class="btn" data-close type="button">Cancel</button><button class="btn primary" data-tmsave="1" type="button">Save</button></div></div></div>`;
+  setTimeout(()=>{const f=$("#tm_name");f&&f.focus();},30);
+}
+async function saveTeamDialog(){
+  const x=S.seats.get(TM.seatId);if(!x)return;const name=$("#tm_name").value.trim();const kind=$("#tm_kind").value;const mode=(document.querySelector('input[name="tm_mode"]:checked')||{}).value;
+  if(!name){toast("Give it a name.");return;}
+  const st=JSON.parse(JSON.stringify(S.struct));let moved=[];let note="";
+  if(mode==="heads"){
+    const cur=x.sub&&subHead(x.sub)&&subHead(x.sub).id===x.id?st.subunits.find(u=>u.id===x.sub):null;
+    if(cur){const old=cur.name;cur.name=name;cur.kind=kind;note=`unit renamed "${old}" → "${name}"`;}
+    else{const u={id:uid("su"),deptId:x.unit,parentId:x.sub||"",kind,name,order:st.subunits.length};st.subunits.push(u);const old=x.sub||"";moved=[x].concat([...descendants(x.id)].map(id=>S.seats.get(id)).filter(y=>y&&(y.sub||"")===old));for(const y of moved)y.__sub=u.id;note=`${kind.toLowerCase()} "${name}" created, headed by ${x.title}`;}
+  }else{
+    const ids=[...document.querySelectorAll("[data-tm-member]:checked")].map(el=>el.dataset.tmMember);if(!ids.length){toast("Tick at least one member.");return;}
+    const u={id:uid("su"),deptId:x.unit,parentId:x.sub||"",kind,name,order:st.subunits.length};st.subunits.push(u);
+    for(const id of ids){const r=S.seats.get(id);if(!r)continue;const old=r.sub||"";moved.push(r);r.__sub=u.id;for(const did of descendants(r.id)){const d=S.seats.get(did);if(d&&(d.sub||"")===old){moved.push(d);d.__sub=u.id;}}}
+    note=`${kind.toLowerCase()} "${name}" created under ${x.title} with ${ids.length} member${ids.length>1?"s":""}`;
+  }
+  closeModal();TM=null;await saveStruct(st);
+  for(const y of moved){const n=JSON.parse(JSON.stringify(y));n.sub=y.__sub;delete n.__sub;delete y.__sub;n.log=n.log||[];logEntry(n,"field",`Placed in ${kind.toLowerCase()} "${name}"`);await saveSeat(n);}
+  const m=Object.assign({},S.meta);m.pendingStructural=true;m.structuralNotes=(m.structuralNotes||[]).concat([note]).slice(-12);await saveMeta(m);
+  toast(note.charAt(0).toUpperCase()+note.slice(1));
 }
 function projChip(p,extra){const r=projectRag(p);return `<span class="pchip ${r.c}" draggable="${isDirector()}" data-pchip="${p.id}" data-openproject="${p.id}" title="${esc(p.name)} · ${projectPct(p)}% · ${r.open} open issue${r.open===1?"":"s"}${extra?" · "+esc(extra):""}"><i></i>${esc(p.code||p.name)}<b class="num">${projectPct(p)}%</b></span>`;}
 function projectTray(){
@@ -1558,7 +1586,7 @@ function orgBuilder(){
       <span class="bav">${esc(x.status==="VACANT"?"?":initials(x.occupant))}</span>
       <span class="btitle"><b>${esc(x.title)}</b>${x.sub?` <span class="pill kind" style="background:var(--uc);cursor:pointer" ${dir?`data-renamesub="${x.sub}" title="Rename this sub-unit"`:""}>${esc(subLabel(x.sub))}${dir?" ✎":""}</span>`:""}<span class="small muted"> · ${esc(x.code)} · ${esc(x.grade)}${kids.length?` · ${kids.length} report${kids.length>1?"s":""}`:""}${other?` · ${other} in other departments`:""}${seatTasks(x).length?` · ${seatTasks(x).length} task${seatTasks(x).length>1?"s":""}`:""}</span>${bp.length?`<span class="bprojs">${bp.slice(0,5).map(p=>projChip(p)).join("")}${bp.length>5?`<span class="small muted">+${bp.length-5}</span>`:""}</span>`:""}</span>
       <span class="bocc ${x.status}">${esc(occ(x))}</span>
-      <span class="bacts">${dir?`<button class="btn sm" data-bedit="${x.id}" type="button" title="Edit this position in place">Edit</button>${!(x.sub&&subHead(x.sub)&&subHead(x.sub).id===x.id)?`<button class="btn sm ghost" data-nameteam="${x.id}" type="button" title="Name the team this person leads">Team</button>`:""}<button class="btn sm primary" data-badd="${x.id}" data-dept="${esc(x.unit)}" type="button" title="Add a position reporting to this one">+ Below</button><button class="btn sm ghost" data-bup="${x.id}" type="button" ${idx===0?"disabled":""} title="Move up">↑</button><button class="btn sm ghost" data-bdown="${x.id}" type="button" ${idx===sibs.length-1?"disabled":""} title="Move down">↓</button>`:""}<button class="btn sm ghost" data-openseat="${x.id}" type="button" title="Full seat form (JPDF, dotted lines, log)">${dir?"Details":"Open"}</button></span>
+      <span class="bacts">${dir?`<button class="btn sm" data-bedit="${x.id}" type="button" title="Edit this position in place">Edit</button><button class="btn sm ghost" data-nameteam="${x.id}" type="button" title="Name the unit this person heads, or a team under them">Team</button><button class="btn sm primary" data-badd="${x.id}" data-dept="${esc(x.unit)}" type="button" title="Add a position reporting to this one">+ Below</button><button class="btn sm ghost" data-bup="${x.id}" type="button" ${idx===0?"disabled":""} title="Move up">↑</button><button class="btn sm ghost" data-bdown="${x.id}" type="button" ${idx===sibs.length-1?"disabled":""} title="Move down">↓</button>`:""}<button class="btn sm ghost" data-openseat="${x.id}" type="button" title="Full seat form (JPDF, dotted lines, log)">${dir?"Details":"Open"}</button></span>
     </div>${adding?bForm(x.id,x.unit):""}${col?"":kids.map((k,i)=>row(k,depth+1,kids,i)).join("")}`;};
   const groupHead=seatsAll().find(x=>!x.reportsTo&&(x.unit===(S.struct.departments[0]||{}).name));
   return `<div class="grouphead"><div class="lbl">Service group</div><h2>${esc(S.struct.group.name)} <span class="muted">(${esc(S.struct.group.short)})</span></h2><span class="small muted">${seatsAll().length} positions · ${seatsAll().filter(x=>x.status==="VACANT").length} vacant</span>${dir?`<button class="btn sm" data-structure style="margin-left:auto">Departments &amp; sub-units</button>`:""}</div>
@@ -1598,7 +1626,7 @@ function orgNode(s,top,opts){
     <div class="oocc">${esc(occ(s))}</div>${s.status==="ACTING"&&s.substantive?`<div class="ometa">substantive: ${esc(s.substantive)}</div>`:""}
     ${s.sub?`<div class="osub" ${isDirector()?`data-renamesub="${s.sub}" title="Click to rename this sub-unit"`:""}>${heads?"heads ":""}${esc(subLabel(s.sub))}${isDirector()?" ✎":""}</div>`:""}${seatProjects(s).length?`<div class="oproj">${seatProjects(s).slice(0,4).map(p=>projChip(p)).join("")}${seatProjects(s).length>4?`<span class="small muted">+${seatProjects(s).length-4}</span>`:""}</div>`:""}
     ${(s.dotted||[]).map(d=>`<div class="odot" title="dotted line">⇢ ${esc(d.meaning||"?")} <b>${esc((S.seats.get(d.to)||{}).title||"?")}</b></div>`).join("")}
-    <div class="oacts"><button class="btn sm" data-openseat="${s.id}" type="button">Open</button>${dir?`<button class="btn sm" data-newseat="${s.id}" type="button">+ Report</button>`:""}${canCreateIn(s.unit)?`<button class="btn sm" data-newtaskseat="${s.id}" type="button">Assign</button>`:""}${dir&&!heads?`<button class="btn sm ghost" data-nameteam="${s.id}" type="button" title="Name the team this person leads">Team</button>`:""}${n?`<button class="btn sm ghost" data-collapse="${s.id}" type="button" title="${col?"Expand":"Collapse"} branch">${col?"▸ "+n:"▾ "+n}</button>`:""}</div>
+    <div class="oacts"><button class="btn sm" data-openseat="${s.id}" type="button">Open</button>${dir?`<button class="btn sm" data-newseat="${s.id}" type="button">+ Report</button>`:""}${canCreateIn(s.unit)?`<button class="btn sm" data-newtaskseat="${s.id}" type="button">Assign</button>`:""}${dir?`<button class="btn sm ghost" data-nameteam="${s.id}" type="button" title="Name the unit this person heads, or a team under them">Team</button>`:""}${n?`<button class="btn sm ghost" data-collapse="${s.id}" type="button" title="${col?"Expand":"Collapse"} branch">${col?"▸ "+n:"▾ "+n}</button>`:""}</div>
   </div>`;
 }
 function orgTreeHtml(seats){
@@ -2045,7 +2073,7 @@ async function clearSample(){
 
 /* ===================== events ===================== */
 document.addEventListener("click",e=>{
-  const el=e.target.closest("[data-tab],[data-open],[data-unit],[data-ack],[data-close],[data-save],[data-addsub],[data-sub-del],[data-addatt],[data-att-del],[data-addcmt],[data-cancel],[data-flag],[data-new],[data-done],[data-sort],[data-orgmode],[data-zoom],[data-pw],[data-logout],[data-acc],[data-nameteam],[data-pqadd],[data-renamesub],[data-bedit],[data-besave],[data-bremove],[data-badd],[data-bsave],[data-bcancel],[data-bup],[data-bdown],[data-newseatunit],[data-newseatsub],[data-newsub],[data-structure],[data-savestruct],[data-st-add],[data-st-del],[data-collapse],[data-ozoom],[data-fit],[data-expandall],[data-fs],[data-quickstart],[data-newseat],[data-openseat],[data-meta],[data-reissue],[data-saveseat],[data-abolish],[data-adddot],[data-dot-del],[data-savemeta],[data-newtaskseat],[data-st],[data-imp],[data-rep],[data-openproject],[data-newproject],[data-ptab],[data-back],[data-editproject],[data-rows],[data-newissue],[data-openissue],[data-saveproject],[data-saveissue],[data-addteam],[data-tm-del],[data-addlink],[data-lk-del],[data-archiveproject],[data-radd],[data-rdel],[data-saverows],[data-addupd],[data-taskfromissue],[data-newtaskproject],[data-ifcat],#newBtn,#clearSample,#clearF,#csv,#repPrev,#repNext,#repCopy");
+  const el=e.target.closest("[data-tab],[data-open],[data-unit],[data-ack],[data-close],[data-save],[data-addsub],[data-sub-del],[data-addatt],[data-att-del],[data-addcmt],[data-cancel],[data-flag],[data-new],[data-done],[data-sort],[data-orgmode],[data-zoom],[data-pw],[data-logout],[data-acc],[data-nameteam],[data-tmsave],[data-pqadd],[data-renamesub],[data-bedit],[data-besave],[data-bremove],[data-badd],[data-bsave],[data-bcancel],[data-bup],[data-bdown],[data-newseatunit],[data-newseatsub],[data-newsub],[data-structure],[data-savestruct],[data-st-add],[data-st-del],[data-collapse],[data-ozoom],[data-fit],[data-expandall],[data-fs],[data-quickstart],[data-newseat],[data-openseat],[data-meta],[data-reissue],[data-saveseat],[data-abolish],[data-adddot],[data-dot-del],[data-savemeta],[data-newtaskseat],[data-st],[data-imp],[data-rep],[data-openproject],[data-newproject],[data-ptab],[data-back],[data-editproject],[data-rows],[data-newissue],[data-openissue],[data-saveproject],[data-saveissue],[data-addteam],[data-tm-del],[data-addlink],[data-lk-del],[data-archiveproject],[data-radd],[data-rdel],[data-saverows],[data-addupd],[data-taskfromissue],[data-newtaskproject],[data-ifcat],#newBtn,#clearSample,#clearF,#csv,#repPrev,#repNext,#repCopy");
   if(!el)return;
   const d0=el.dataset;
   if(d0.orgmode){S.orgMode=d0.orgmode;S.orgFit=true;render();return;}
@@ -2064,6 +2092,8 @@ document.addEventListener("click",e=>{
   if(d0.bsave!==undefined){builderAdd();return;}
   if(d0.renamesub!==undefined){e.stopPropagation();renameSub(d0.renamesub);return;}
   if(d0.nameteam!==undefined){e.stopPropagation();nameTeam(d0.nameteam);return;}
+  if(d0.tmsave!==undefined){saveTeamDialog();return;}
+  if(TM&&d0.close!==undefined){TM=null;closeModal();return;}
   if(d0.pqadd!==undefined){const v=$("#pq_names").value;if(!v.trim()){toast("Type one or more project names.");return;}quickAddProjects(v,null);return;}
   if(d0.bedit!==undefined){if(!isDirector())return;S.bAdd=null;S.bEdit=S.bEdit===d0.bedit?null:d0.bedit;render();setTimeout(()=>{const el=$("#e_title");el&&el.focus();},30);return;}
   if(d0.besave!==undefined){builderSave(d0.besave);return;}
@@ -2173,7 +2203,7 @@ document.addEventListener("change",e=>{
 document.addEventListener("input",e=>{const el=e.target;if(el.id==="orgQ"){S.orgQ=el.value;const q=el.value.toLowerCase();document.querySelectorAll("#orgStage .seatg").forEach(g=>{const s=S.seats.get(g.dataset.openseat);if(!s)return;const hit=!q||(s.title+" "+(s.occupant||"")+" "+(s.code||"")+" "+(s.scope||"")).toLowerCase().includes(q);g.classList.toggle("dim",!hit&&!!q);g.classList.toggle("hit",hit&&!!q);});if(S.orgMode==="list"){const v=document.querySelector(".org-list");if(v){const tmp=document.createElement("div");tmp.innerHTML=orgList(orgScope());v.outerHTML=tmp.innerHTML;}}return;}if(el.dataset.f==="q"||el.dataset.f==="owner"){S.filters[el.dataset.f]=el.value;const tb=document.querySelector("table.reg tbody");if(tb){const tmp=document.createElement("div");tmp.innerHTML=vRegister();tb.innerHTML=tmp.querySelector("tbody").innerHTML;const c=document.querySelector("#csv+span");const c2=tmp.querySelector("#csv+span");if(c&&c2)c.textContent=c2.textContent;}}});
 document.getElementById("burger").addEventListener("click",()=>$("#side").classList.toggle("open"));
 document.addEventListener("keydown",e=>{const bf=e.target.closest&&e.target.closest("[data-bform]");if(bf){if(e.key==="Enter"&&e.target.tagName!=="TEXTAREA"&&e.target.tagName!=="SELECT"){e.preventDefault();if(bf.dataset.bform==="edit")builderSave(S.bEdit);else builderAdd();return;}if(e.key==="Escape"){S.bAdd=null;S.bEdit=null;render();return;}}
-  if(e.key==="Escape"){const a=$("#ask");if(a){a.remove();return;}if(M||SM||PM||RM||IMod||ST){M=null;SM=null;PM=null;RM=null;IMod=null;ST=null;closeModal();}}});
+  if(e.key==="Escape"){const a=$("#ask");if(a){a.remove();return;}if(M||SM||PM||RM||IMod||ST||TM){M=null;SM=null;PM=null;RM=null;IMod=null;ST=null;TM=null;closeModal();}}});
 
 /* ===================== boot ===================== */
 /* ===================== accounts (website edition) ===================== */
