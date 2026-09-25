@@ -5,15 +5,6 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="color-scheme" content="light dark">
 <title>EDGG Task Monitor · WRLD Capital Holdings</title>
-<script>
-/* ===== SITE SETTINGS — edit these two lines once, then upload to GitHub =====
-   1. Paste the firebaseConfig object from the Firebase console in place of null.
-      Example: window.EDGG_FIREBASE = {apiKey:"AIza…", authDomain:"edgg-monitor.firebaseapp.com", databaseURL:"https://edgg-monitor-default-rtdb.asia-southeast1.firebasedatabase.app", projectId:"edgg-monitor", appId:"1:123:web:abc"};
-   2. Set the workspace key to the same value used in your database rules. */
-window.EDGG_FIREBASE = null;
-window.EDGG_WORKSPACE = "edgg";
-window.EDGG_ACCOUNTS = true;   /* per-person sign-in; set to false to go back to the role dropdown */
-</script>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23B5563A'/%3E%3Ctext x='32' y='44' font-family='Georgia,serif' font-size='36' font-weight='600' fill='white' text-anchor='middle'%3EW%3C/text%3E%3C/svg%3E">
 <style>html{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
 
@@ -83,7 +74,6 @@ a{color:var(--accent)}
 .sfoot{border-top:1px solid rgba(255,255,255,.1);padding-top:10px;display:flex;flex-direction:column;gap:8px}
 .sfoot .lbl{color:#A79483}
 .sfoot select{background:rgba(255,255,255,.08);color:#fff;border-color:rgba(255,255,255,.2)}
-.uchip{display:flex;gap:10px;align-items:center;color:#F3EAE0}.uchip .av{width:36px;height:36px;border-radius:50%;color:#fff;font-weight:700;font-size:12px;display:grid;place-items:center;flex:none}.uchip .small{color:#C9B79B;font-size:11px}
 .sfoot select option{color:var(--text);background:var(--surface)}
 .sync{display:inline-flex;align-items:center;gap:6px;font-size:11px;color:#C9B79B}
 .sync i{width:8px;height:8px;border-radius:50%;background:var(--faint);display:inline-block}
@@ -392,26 +382,6 @@ ul.otree ul::before{content:"";position:absolute;top:0;left:50%;border-left:2px 
 .pill.kind{background:var(--uc);color:#fff}
 .grouphead{display:flex;gap:12px;align-items:baseline;flex-wrap:wrap;margin-bottom:10px}
 .grouphead h2{font-size:22px}
-/* outline builder */
-.bdept{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--uc);border-radius:var(--radius);padding:8px 12px 10px;margin-bottom:10px}
-.bdhead{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:2px 0 6px;border-bottom:1px solid var(--line);margin-bottom:4px}
-.bdhead h3{font-size:17px}
-.brow{display:grid;grid-template-columns:18px 30px minmax(0,1fr) auto auto;gap:10px;align-items:center;padding:6px 8px;margin-left:calc(var(--d)*26px);border-radius:6px;cursor:pointer;position:relative;transition:background .12s}
-.brow::before{content:"";position:absolute;left:-14px;top:0;bottom:0;border-left:2px solid var(--line);display:none}
-.brow[style*="--d:1"]::before,.brow[style*="--d:2"]::before,.brow[style*="--d:3"]::before,.brow[style*="--d:4"]::before,.brow[style*="--d:5"]::before{display:block}
-.brow:hover{background:var(--surface2)}
-.brow.dim{opacity:.3}
-.btog{color:var(--muted);font-size:12px;text-align:center;cursor:pointer}
-.bav{width:30px;height:30px;border-radius:50%;background:var(--uc);color:#fff;font-weight:700;font-size:11px;display:grid;place-items:center}
-.brow.VACANT .bav{background:var(--faint);opacity:.7}
-.btitle{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.bocc{font-weight:700;font-size:12.5px;white-space:nowrap}
-.bocc.VACANT{color:var(--bad);letter-spacing:.06em;font-size:11px}
-.bacts{display:flex;gap:3px;opacity:.35;transition:opacity .12s}
-.brow:hover .bacts{opacity:1}
-.bacts .btn{padding:3px 7px;font-size:11px}
-.bform{margin:4px 0 8px 32px;padding:10px 12px;background:var(--warn-bg);border:1px solid var(--warn);border-radius:var(--radius)}
-@media (max-width:640px){.brow{grid-template-columns:18px 30px minmax(0,1fr);row-gap:4px}.brow .bocc,.brow .bacts{grid-column:3}.bacts{opacity:1}.brow{margin-left:calc(var(--d)*14px)}.bform{margin-left:8px}}
 .code{background:var(--surface2);border-radius:4px;padding:8px 10px;font-size:11px;overflow:auto;margin:6px 0}
 /* gate */
 .gate{max-width:480px;margin:8vh auto;background:var(--surface);border:1px solid var(--line2);border-radius:8px;padding:28px;box-shadow:var(--shadow)}
@@ -451,8 +421,6 @@ ul.otree ul::before{content:"";position:absolute;top:0;left:50%;border-left:2px 
   <div class="sfoot" id="who" hidden>
     <label class="lbl" for="roleSel">Working as</label>
     <select id="roleSel" aria-label="Role"></select>
-    <div id="userChip" hidden class="uchip"><div class="av" id="userAv"></div><div><b id="userName"></b><div class="small" id="userSeat"></div></div></div>
-    <div id="userBtns" hidden class="row" style="gap:4px"><button class="btn sm ghost" data-pw style="color:#E4D8C8">Change password</button><button class="btn sm ghost" data-logout style="color:#E4D8C8">Sign out</button></div>
     <button class="btn primary" id="newBtn" style="width:100%;justify-content:center">+ New task</button>
     <div class="row" style="gap:4px"><button class="btn sm ghost" data-st="theme" title="Dark / light" style="color:#E4D8C8">◐ Theme</button><button class="btn sm ghost" data-st="fullscreen" title="Full screen" style="color:#E4D8C8">⤢ Full screen</button></div>
     <span class="sync" id="sync"><i></i><span>connecting…</span></span>
@@ -507,7 +475,7 @@ const DEPTS=["Construction","Finance & Accounting","Human Resources","Legal","Ad
 const META_DEFAULT={docNo:"ORG-EDGG-001",revision:"Rv 01",issueDate:"",supersedes:"—",preparedBy:"Director, EDGG",approvedBy:"President",nextReview:"",owner:"Director, EDGG",scope:"Enterprise Development and Growth Group — Project Development (incl. PET), Business Development, Sales, Marketing Communications",pendingStructural:false,structuralNotes:[]};
 
 /* ===================== state ===================== */
-const S={struct:null,tasks:new Map(),esc:new Map(),seats:new Map(),projects:new Map(),issues:new Map(),projectId:null,pTab:"overview",issueF:{cat:"",status:"open",sev:"",project:""},meta:Object.assign({},META_DEFAULT),orgView:"all",orgMode:"builder",bAdd:null,orgZoom:1,role:null,tab:"board",unitPage:UNITS[0],db:null,dl:null,live:false,
+const S={struct:null,tasks:new Map(),esc:new Map(),seats:new Map(),projects:new Map(),issues:new Map(),projectId:null,pTab:"overview",issueF:{cat:"",status:"open",sev:"",project:""},meta:Object.assign({},META_DEFAULT),orgView:"all",orgMode:"cards",orgZoom:1,role:null,tab:"board",unitPage:UNITS[0],db:null,dl:null,live:false,
   filters:{q:"",unit:"",cat:"",tier:"",owner:"",status:"",prio:"",from:"",to:"",showCX:false},
   sort:{k:"due",d:1},reportDate:null,kbView:"all"};
 applyStruct(JSON.parse(JSON.stringify(DEFAULT_STRUCT)));
@@ -533,24 +501,18 @@ function num(n){n=Number(n);return isFinite(n)?n.toLocaleString("en-PH"):"—";}
 function uid(p){return p+"_"+Date.now().toString(36)+Math.random().toString(36).slice(2,7);}
 
 /* ===================== permissions ===================== */
-const ACCOUNTS=!!window.EDGG_ACCOUNTS;
-function role(){
-  if(ACCOUNTS){const u=S.user;if(!u)return null;const st=u.seatId&&S.seats.get(u.seatId);const unit=u.level==="director"?null:(st?st.unit:(u.unit||null));return {id:u.username,label:u.name+(st?" — "+st.title:""),unit,level:u.level,seatId:u.seatId||"",name:u.name,seat:st||null};}
-  return ROLES.find(r=>r.id===S.role)||null;}
-function isDirector(){const r=role();return !!r&&(ACCOUNTS?r.level==="director":r.id==="director");}
-function isMember(){const r=role();return !!r&&ACCOUNTS&&r.level==="member";}
-function ownsTask(t){const r=role();if(!r)return false;return (r.seatId&&t.ownerSeat===r.seatId)||(r.name&&t.owner&&t.owner.trim().toLowerCase()===r.name.trim().toLowerCase())||t.createdBy===r.label;}
-function canEdit(t){const r=role();if(!r)return false;if(r.unit===null)return true;if(isMember())return t.unit===r.unit&&ownsTask(t);return t.unit===r.unit;}
+function role(){return ROLES.find(r=>r.id===S.role)||null;}
+function isDirector(){return S.role==="director";}
+function canEdit(t){const r=role();if(!r)return false;if(r.unit===null)return true;return t.unit===r.unit;}
 function canCreateIn(unit){const r=role();return r&&(r.unit===null||r.unit===unit);}
 
 /* ===================== persistence ===================== */
 let pendingLocal=false;
 /* ===================== storage: Firebase Realtime Database, or this browser only ===================== */
 const CFG_KEY="edgg.firebase",AI_KEY="edgg.claudeKey",AI_MODEL_KEY="edgg.claudeModel",WS_KEY="edgg.workspace";
-const COLLS={tasks:"tasks",escalations:"esc",seats:"seats",projects:"projects",issues:"issues",accounts:"accounts"};
-function getCfg(){let c=null;try{c=JSON.parse(localStorage.getItem(CFG_KEY)||"null");}catch(e){}return c||(window.EDGG_FIREBASE&&window.EDGG_FIREBASE.databaseURL?window.EDGG_FIREBASE:null);}
-function cfgIsBuiltIn(){let c=null;try{c=JSON.parse(localStorage.getItem(CFG_KEY)||"null");}catch(e){}return !c&&!!(window.EDGG_FIREBASE&&window.EDGG_FIREBASE.databaseURL);}
-function workspace(){let w="";try{w=localStorage.getItem(WS_KEY)||"";}catch(e){}return (w||window.EDGG_WORKSPACE||"edgg").replace(/[.#$\[\]\/]/g,"-");}
+const COLLS={tasks:"tasks",escalations:"esc",seats:"seats",projects:"projects",issues:"issues"};
+function getCfg(){try{return JSON.parse(localStorage.getItem(CFG_KEY)||"null");}catch(e){return null;}}
+function workspace(){try{return (localStorage.getItem(WS_KEY)||"edgg").replace(/[.#$\[\]\/]/g,"-");}catch(e){return "edgg";}}
 const ARR_KEYS=["subtasks","deps","comments","log","attachments","dotted","team","phases","inventory","priceList","links","updates","structuralNotes","departments","subunits"];
 function norm(d){if(!d||typeof d!=="object")return d;for(const k of ARR_KEYS)if(k in d||["subtasks","deps","comments","log","attachments"].includes(k)){if(!Array.isArray(d[k]))d[k]=d[k]&&typeof d[k]==="object"?Object.values(d[k]):[];}if(d.jpdf===undefined&&d.code!==undefined)d.jpdf={};return d;}
 function clean(d){return JSON.parse(JSON.stringify(d));}
@@ -558,13 +520,13 @@ const LocalStore={
   read(){try{return JSON.parse(localStorage.getItem("edgg.data")||"{}");}catch(e){return {};}},
   write(all){try{localStorage.setItem("edgg.data",JSON.stringify(all));}catch(e){toast("This browser could not save (storage full or blocked).");}},
   doc(path){const [coll,id]=path.split("/");return {set:async data=>{const all=LocalStore.read();(all[coll]=all[coll]||{})[id]=clean(data);LocalStore.write(all);},delete:async()=>{const all=LocalStore.read();if(all[coll])delete all[coll][id];LocalStore.write(all);}};},
-  load(){const all=LocalStore.read();for(const [c,k] of Object.entries(COLLS))S[k]=new Map(Object.entries(all[c]||{}).map(([id,d])=>[id,norm(d)]));if(all.org&&all.org.meta)S.meta=Object.assign({},META_DEFAULT,norm(all.org.meta));if(all.org&&all.org.structure)applyStruct(norm(all.org.structure));S.accountsLoaded=true;accountsSynced();}
+  load(){const all=LocalStore.read();for(const [c,k] of Object.entries(COLLS))S[k]=new Map(Object.entries(all[c]||{}).map(([id,d])=>[id,norm(d)]));if(all.org&&all.org.meta)S.meta=Object.assign({},META_DEFAULT,norm(all.org.meta));if(all.org&&all.org.structure)applyStruct(norm(all.org.structure));}
 };
 let FB=null;
 const FireStore={
   doc(path){const r=FB.ref(workspace()+"/"+path);return {set:async data=>r.set(clean(data)),delete:async()=>r.remove()};},
   subscribe(set){
-    for(const [c,k] of Object.entries(COLLS)){FB.ref(workspace()+"/"+c).on("value",snap=>{const v=snap.val()||{};S[k]=new Map(Object.entries(v).map(([id,d])=>[id,norm(d)]));if(c==="accounts"){S.accountsLoaded=true;accountsSynced();}else render();},err=>{set("local","permission denied — check database rules");if(c==="accounts"){S.accountsLoaded=true;render();}});}
+    for(const [c,k] of Object.entries(COLLS)){FB.ref(workspace()+"/"+c).on("value",snap=>{const v=snap.val()||{};S[k]=new Map(Object.entries(v).map(([id,d])=>[id,norm(d)]));render();},err=>{set("local","permission denied — check database rules");});}
     FB.ref(workspace()+"/org/meta").on("value",snap=>{const v=snap.val();if(v)S.meta=Object.assign({},META_DEFAULT,norm(v));render();});
     FB.ref(workspace()+"/org/structure").on("value",snap=>{const v=snap.val();if(v){applyStruct(norm(v));refreshRoleSel();}render();});
     FB.ref(".info/connected").on("value",snap=>{set(snap.val()?"live":"local",snap.val()?"live · shared":"reconnecting…");});
@@ -704,9 +666,8 @@ function renderTabs(){
   $("#side").classList.remove("open");
 }
 function render(){
-  if(ACCOUNTS?!S.user:!S.role){renderGate();return;}
+  if(!S.role){renderGate();return;}
   $("#who").hidden=false;$("#tabs").hidden=false;
-  if(ACCOUNTS){const r=role();$("#roleSel").hidden=true;$("#userChip").hidden=false;$("#userBtns").hidden=false;$("#userAv").textContent=initials(r.name);$("#userAv").style.background=r.seat?UCOL[r.seat.unit]:"var(--terracotta)";$("#userName").textContent=r.name;$("#userSeat").textContent=(r.seat?r.seat.title+" · ":"")+(ACC_LEVELS.find(l=>l[0]===r.level)||[])[1].split(" — ")[0];}
   renderTabs();
   const m=$("#main");
   const f={board:vBoard,kanban:vKanban,register:vRegister,timeline:vTimeline,routines:vRoutines,units:vUnits,org:vOrg,projects:vProjects,report:vReport,io:vIO,settings:vSettings}[S.tab];
@@ -716,7 +677,6 @@ function render(){
 }
 function renderGate(){
   $("#who").hidden=true;$("#tabs").hidden=true;$("#topbar").hidden=true;
-  if(ACCOUNTS){renderLogin();return;}
   $("#main").innerHTML=`<div class="gate"><div class="lbl">WRLD Capital Holdings · EDGG</div><h2>Who is working?</h2><p>Pick your role. Every change you make is recorded under it. There are no passwords; this is a trust-based register shared inside WRLD.</p>
   <select id="gateSel"><option value="">Select role…</option>${ROLES.map(r=>`<option value="${r.id}">${r.label}</option>`).join("")}</select>
   <button class="btn primary" id="gateGo" style="width:100%;justify-content:center;padding:10px">Enter</button></div>`;
@@ -1124,14 +1084,13 @@ function vSettings(){
   const cfg=getCfg();const dir=isDirector();const counts=Object.entries(COLLS).map(([c,k])=>`${S[k].size} ${c}`).join(" · ");const sampleN=[...S.tasks.values()].filter(t=>t.sample).length+[...S.seats.values()].filter(s=>s.sample).length+[...S.projects.values()].filter(p=>p.sample).length;
   return `<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(340px,1fr));align-items:start">
   <div class="panel"><div class="ph"><h2>Shared database (Firebase)</h2><span class="sync ${S.live?"live":"local"}" style="color:var(--muted)"><i></i><span>${S.live?"connected":"not connected — this browser only"}</span></span></div><div class="pb">
-    <p class="small muted" style="margin:0 0 10px">${cfgIsBuiltIn()?"This site was published with its database built in, so every device connects automatically. Paste a different config here only to override it on this device.":"Paste the <b>firebaseConfig</b> object from the Firebase console (Project settings → Your apps → Web app). Better still, put it in <code>index.html</code> (the <code>EDGG_FIREBASE</code> line near the top) before uploading to GitHub — then every phone and laptop connects the moment it opens the link, with nothing to paste."}</p>
+    <p class="small muted" style="margin:0 0 10px">Paste the <b>firebaseConfig</b> object from the Firebase console (Project settings → Your apps → Web app). It is kept in this browser only; every device that opens the site pastes it once. Until then the app runs from this browser's storage and nothing is shared.</p>
     <div class="field"><label>firebaseConfig (JSON)</label><textarea id="st_cfg" rows="7" placeholder='{"apiKey":"…","authDomain":"…","databaseURL":"https://…firebasedatabase.app","projectId":"…","appId":"…"}'>${esc(cfg?JSON.stringify(cfg,null,1):"")}</textarea></div>
     <div class="field" style="margin-top:8px"><label>Workspace key (path in the database — same on every device)</label><input type="text" id="st_ws" value="${esc(workspace())}" placeholder="edgg"></div>
     <div class="row" style="margin-top:10px"><button class="btn primary" data-st="savecfg">Save and connect</button><button class="btn" data-st="clearcfg">Disconnect</button></div>
     <div class="note" style="margin-top:12px"><b>Database rules</b> (Realtime Database → Rules). Simplest, for a link shared only inside WRLD:<pre class="code">{ "rules": { "${esc(workspace())}": { ".read": true, ".write": true } } }</pre>Anyone who knows the database URL and workspace key can read and write, so keep the workspace key private and long (e.g. <code>edgg-7f3k92</code>). For named logins with per-user access, add Firebase Authentication later.</div>
   </div></div>
   <div>
-  ${vAccounts()}
   <div class="panel" style="margin-bottom:12px"><div class="ph"><h2>AI-assisted import (optional)</h2></div><div class="pb">
     <p class="small muted" style="margin:0 0 10px">A Claude API key lets the Import page read free-form monitoring sheets and propose changes. The key stays in this browser's storage and is sent only to api.anthropic.com from this page; do not share it, and prefer entering it only on your own computer.</p>
     <div class="grid g2"><div class="field"><label>Claude API key</label><input type="password" id="st_ai" value="${esc(getAiKey())}" placeholder="sk-ant-…" autocomplete="off"></div><div class="field"><label>Model</label><input type="text" id="st_model" value="${esc(getAiModel())}"></div></div>
@@ -1144,7 +1103,7 @@ function vSettings(){
   <div class="panel"><div class="ph"><h2>Display</h2></div><div class="pb"><div class="row"><button class="btn sm" data-st="theme">Toggle dark / light</button><button class="btn sm" data-st="fullscreen">⤢ Full screen</button><button class="btn sm" data-st="switchrole">Switch role</button></div><p class="small muted" style="margin:10px 0 0">Version ${APP_VERSION} · EDGG Task Monitor · WRLD Capital Holdings</p></div></div>
   </div></div>`;
 }
-const APP_VERSION="1.3 (website)";
+const APP_VERSION="1.1 (website)";
 async function settingsAction(a){
   if(a==="savecfg"){let cfg;try{const t=$("#st_cfg").value.trim().replace(/^const\s+firebaseConfig\s*=\s*/,"").replace(/;\s*$/,"");cfg=Function("return ("+t+")")();}catch(e){toast("That is not a valid config object.");return;}if(!cfg||!cfg.databaseURL){toast("The config needs a databaseURL — enable Realtime Database first.");return;}
     try{localStorage.setItem(CFG_KEY,JSON.stringify(cfg));localStorage.setItem(WS_KEY,$("#st_ws").value.trim()||"edgg");}catch(e){}toast("Saved — reloading to connect");setTimeout(()=>location.reload(),600);return;}
@@ -1428,10 +1387,10 @@ function vOrg(){
   const seats=orgScope();const checks=orgChecks();const m=S.meta;const dir=isDirector();const st=orgStats();
   const nbad=checks.filter(c=>c.s==="bad").length;
   const empty=!seatsAll().length;
-  const body=(empty&&S.orgMode!=="builder")?orgQuickStart(dir):S.orgMode==="builder"?orgBuilder():S.orgMode==="chart"?orgSvg(seats):S.orgMode==="list"?orgList(seats):S.orgMode==="teams"?orgTeams():orgCards(seats);
+  const body=empty?orgQuickStart(dir):S.orgMode==="chart"?orgSvg(seats):S.orgMode==="list"?orgList(seats):S.orgMode==="teams"?orgTeams():orgCards(seats);
   return `<div class="org-tools no-print">
     <select id="orgView"><option value="all">Whole group</option>${UNITS.map(u=>`<option value="${esc(u)}" ${S.orgView===u?"selected":""}>${esc(u)}</option>`).join("")}</select>
-    <span class="seg">${[["builder","Builder"],["cards","Cards"],["teams","Teams"],["chart","Canvas"],["list","List"]].map(([k,l])=>`<span class="btn sm ${S.orgMode===k?"primary":""}" data-orgmode="${k}" role="button">${l}</span>`).join("")}</span>
+    <span class="seg">${[["cards","Cards"],["teams","Teams"],["chart","Canvas"],["list","List"]].map(([k,l])=>`<span class="btn sm ${S.orgMode===k?"primary":""}" data-orgmode="${k}" role="button">${l}</span>`).join("")}</span>
     <input type="search" id="orgQ" value="${esc(S.orgQ||"")}" placeholder="Find a seat or person…" style="width:190px">
     <span class="spacer" style="flex:1"></span>
     <button class="btn sm" data-rep="org" title="Chart + seat register + JPDFs, prints to PDF">Download chart</button><button class="btn sm ghost" data-rep="orgsvg" title="Chart drawing only">SVG</button>
@@ -1462,49 +1421,6 @@ async function quickStart(){
   const m=Object.assign({},S.meta,{pendingStructural:true,structuralNotes:["skeleton created"],issueDate:S.meta.issueDate||todayStr()});await saveMeta(m);
   S.orgFit=true;toast("Skeleton drawn — every seat is Vacant until you put a name in it.");
 }
-/* ---- outline builder: add levels below departments, positions below positions ---- */
-function nextCode(dept){const d=deptOf(dept);const pre=`${(S.struct.group.short||"GRP")}-${d?d.short:"X"}-`;let mx=0;for(const x of [...S.seats.values()]){if(x.code&&x.code.toUpperCase().startsWith(pre.toUpperCase())){const m=x.code.slice(pre.length).match(/^(\d+)$/);if(m)mx=Math.max(mx,+m[1]);}}return pre+String(mx+1).padStart(3,"0");}
-function gradeBelow(parent){const m=parent&&(parent.grade||"").match(/(\d+)/);const n=m?Math.max(5,+m[1]-2):10;return "SG-"+String(n).padStart(2,"0");}
-function deptRoots(dept){const us=seatsAll().filter(x=>x.unit===dept);const ids=new Set(us.map(x=>x.id));return us.filter(x=>!x.reportsTo||!ids.has(x.reportsTo)).sort((a,b)=>(a.order||0)-(b.order||0)||a.title.localeCompare(b.title));}
-function bForm(parentId,dept){const p=parentId?S.seats.get(parentId):null;const d=deptOf(dept);
-  return `<div class="bform" data-bform="1"><div class="grid" style="grid-template-columns:2fr 1.4fr 70px;gap:8px"><div class="field"><label>Position title${p?` under ${esc(p.title)}`:` at the top of ${esc(dept)}`}</label><input type="text" id="b_title" placeholder="e.g. Bataan Manager, Asiana Projects PD Officer" autofocus></div><div class="field"><label>Occupant (blank = Vacant)</label><input type="text" id="b_occ" placeholder="Name"></div><div class="field"><label>How many</label><input type="text" id="b_qty" value="1" inputmode="numeric"></div></div>
-  <div class="grid" style="grid-template-columns:1fr 1fr 1fr 2fr;gap:8px;margin-top:6px"><div class="field"><label>Grade</label><input type="text" id="b_grade" value="${esc(gradeBelow(p))}"></div><div class="field"><label>Track</label><select id="b_track">${TRACKS.map(t=>`<option ${t===(p?p.track:"Management")?"selected":""}>${t}</option>`).join("")}</select></div><div class="field"><label>Heads a new sub-unit?</label><select id="b_kind"><option value="">No</option>${SUB_KINDS.map(k=>`<option>${k}</option>`).join("")}</select></div><div class="field"><label>Sub-unit name (if yes)</label><input type="text" id="b_sub" placeholder="e.g. Bataan"></div></div>
-  <div class="row" style="margin-top:8px"><button class="btn primary sm" data-bsave="1" type="button">Add position</button><button class="btn sm" data-bcancel="1" type="button">Cancel</button><span class="small muted">Code ${esc(nextCode(dept))} and the department are filled in for you; open the box later for JPDF and details. Enter adds, Esc cancels.</span></div></div>`;}
-function orgBuilder(){
-  const dir=isDirector();const q=(S.orgQ||"").toLowerCase();
-  const row=(x,depth,sibs,idx)=>{const allKids=seatChildren(x.id);const kids=allKids.filter(k=>k.unit===x.unit);const other=allKids.length-kids.length;const col=S.orgCollapsed.has(x.id);const hit=!q||(x.title+" "+(x.occupant||"")+" "+(x.code||"")).toLowerCase().includes(q);const adding=S.bAdd&&S.bAdd.parentId===x.id;const uc=UCOL[x.unit]||"#888";
-    return `<div class="brow ${x.status} ${q&&!hit?"dim":""}" style="--d:${depth};--uc:${uc}" data-openseat="${x.id}">
-      <span class="btog" ${kids.length?`data-collapse="${x.id}"`:""}>${kids.length?(col?"▸":"▾"):"·"}</span>
-      <span class="bav">${esc(x.status==="VACANT"?"?":initials(x.occupant))}</span>
-      <span class="btitle"><b>${esc(x.title)}</b>${x.sub?` <span class="pill kind" style="background:var(--uc)">${esc(subLabel(x.sub))}</span>`:""}<span class="small muted"> · ${esc(x.code)} · ${esc(x.grade)}${kids.length?` · ${kids.length} report${kids.length>1?"s":""}`:""}${other?` · ${other} in other departments`:""}${seatTasks(x).length?` · ${seatTasks(x).length} task${seatTasks(x).length>1?"s":""}`:""}</span></span>
-      <span class="bocc ${x.status}">${esc(occ(x))}</span>
-      <span class="bacts">${dir?`<button class="btn sm primary" data-badd="${x.id}" data-dept="${esc(x.unit)}" type="button" title="Add a position reporting to this one">+ Below</button><button class="btn sm ghost" data-bup="${x.id}" type="button" ${idx===0?"disabled":""} title="Move up">↑</button><button class="btn sm ghost" data-bdown="${x.id}" type="button" ${idx===sibs.length-1?"disabled":""} title="Move down">↓</button>`:""}<button class="btn sm ghost" data-openseat="${x.id}" type="button">Open</button></span>
-    </div>${adding?bForm(x.id,x.unit):""}${col?"":kids.map((k,i)=>row(k,depth+1,kids,i)).join("")}`;};
-  const groupHead=seatsAll().find(x=>!x.reportsTo&&(x.unit===(S.struct.departments[0]||{}).name));
-  return `<div class="grouphead"><div class="lbl">Service group</div><h2>${esc(S.struct.group.name)} <span class="muted">(${esc(S.struct.group.short)})</span></h2><span class="small muted">${seatsAll().length} positions · ${seatsAll().filter(x=>x.status==="VACANT").length} vacant</span>${dir?`<button class="btn sm" data-structure style="margin-left:auto">Departments &amp; sub-units</button>`:""}</div>
-  <div class="note">Build it like an outline: press <b>+ Below</b> on any position to add the next level under it (a manager under the department head, an officer under the manager). <b>+ Position</b> on a department adds its top seat. Everything you add appears immediately on the Cards, Teams and Canvas views.</div>
-  ${S.struct.departments.map(d=>{const roots=deptRoots(d.name);const us=seatsAll().filter(x=>x.unit===d.name);const adding=S.bAdd&&!S.bAdd.parentId&&S.bAdd.dept===d.name;
-    return `<div class="bdept" style="--uc:${UCOL[d.name]}"><div class="bdhead"><span class="uswatch"></span><h3>${esc(d.name)}</h3><span class="small muted">${us.length} position${us.length===1?"":"s"} · ${us.filter(x=>x.status==="VACANT").length} vacant · ${subsOf(d.name,"").length} sub-unit${subsOf(d.name,"").length===1?"":"s"}</span><span class="spacer"></span>${dir?`<button class="btn sm ${roots.length?"":"primary"}" data-badd="" data-dept="${esc(d.name)}" type="button">+ Position${roots.length?" at department level":" (department head)"}</button>`:""}</div>${adding?bForm("",d.name):""}${roots.map((r,i)=>row(r,0,roots,i)).join("")||(adding?"":`<div class="empty small" style="padding:6px 0 6px 12px">No positions yet.</div>`)}</div>`;}).join("")}`;
-}
-async function builderAdd(){
-  const a=S.bAdd;if(!a)return;const g=id=>{const el=document.getElementById(id);return el?el.value:"";};
-  const title=g("b_title").trim();if(!title){toast("Give the position a title.");const el=$("#b_title");el&&el.focus();return;}
-  const occ=g("b_occ").trim();const qty=Math.min(20,Math.max(1,parseInt(g("b_qty"),10)||1));const grade=g("b_grade").trim()||"SG-10";const track=g("b_track");const kind=g("b_kind");const subName=g("b_sub").trim();
-  const parent=a.parentId?S.seats.get(a.parentId):null;const dept=a.dept;let subId=parent?(parent.sub||""):"";
-  let st=null;
-  if(kind&&subName){st=JSON.parse(JSON.stringify(S.struct));const u={id:uid("su"),deptId:dept,parentId:subId,kind,name:subName,order:st.subunits.length};st.subunits.push(u);subId=u.id;}
-  // department head with no parent: report to the group head if one exists
-  let reportsTo=parent?parent.id:"";if(!reportsTo){const top=seatsAll().find(x=>!x.reportsTo&&x.unit!==dept&&seatLayer(x)===1&&(x.unit===(S.struct.departments[0]||{}).name));if(top)reportsTo=top.id;}
-  const sibs=parent?seatChildren(parent.id):deptRoots(dept);
-  if(st)await saveStruct(st);
-  const made=[];
-  for(let i=0;i<qty;i++){const sd=blankSeat(reportsTo);Object.assign(sd,{title,code:nextCode(dept),grade,track,unit:dept,sub:subId,status:occ&&i===0?"FILLED":"VACANT",occupant:i===0?occ:"",reportsTo,order:sibs.length+i+1,scope:subName||""});logEntry(sd,"create","Created in the org builder");S.seats.set(sd.id,sd);made.push(sd);}
-  S.bAdd=null;
-  for(const sd of made)await saveSeat(sd);
-  const m=Object.assign({},S.meta);m.pendingStructural=true;m.structuralNotes=(m.structuralNotes||[]).concat([`${qty>1?qty+" × ":""}${title} added under ${parent?parent.title:dept}`]).slice(-12);await saveMeta(m);
-  toast(`${qty>1?qty+" positions":"Position"} added${st?" and sub-unit "+subName+" created":""}`);
-}
-async function builderMove(id,dir){const x=S.seats.get(id);if(!x)return;const sibs=x.reportsTo&&S.seats.get(x.reportsTo)?seatChildren(x.reportsTo):deptRoots(x.unit);const i=sibs.findIndex(y=>y.id===id);const j=i+dir;if(j<0||j>=sibs.length)return;const a=JSON.parse(JSON.stringify(sibs[i])),b=JSON.parse(JSON.stringify(sibs[j]));const oa=i+1,ob=j+1;a.order=ob;b.order=oa;S.seats.set(a.id,a);S.seats.set(b.id,b);await saveSeat(a);await saveSeat(b);}
 function orgNode(s,top,opts){
   opts=opts||{};const q=(S.orgQ||"").toLowerCase();const hit=!q||(s.title+" "+(s.occupant||"")+" "+(s.code||"")+" "+(s.scope||"")).toLowerCase().includes(q);
   const n=seatChildren(s.id).length,nt=seatTasks(s).length,col=S.orgCollapsed.has(s.id)&&n;const dir=isDirector();const uc=UCOL[s.unit]||"#888";
@@ -1811,7 +1727,7 @@ async function saveMetaModal(reissue){
 
 /* ===================== task modal ===================== */
 let M=null; // modal working copy
-function blankTask(unit){const r=role();const me=ACCOUNTS&&r.seat;const boss=me&&r.seat.reportsTo&&S.seats.get(r.seat.reportsTo);return {id:uid("t"),title:"",description:"",unit:unit||r.unit||UNITS[0],category:"Administrative",tier:"Deliverable",owner:me&&isMember()?r.name:"",ownerSeat:me&&isMember()?r.seatId:"",accountable:boss&&isMember()?(seatPerson(boss)?`${seatPerson(boss)} (${boss.title})`:boss.title):HEAD_OF[unit||r.unit||UNITS[0]],priority:"Normal",status:"NS",start:todayStr(),due:"",completed:"",recurrence:"",deps:[],subtasks:[],link:"",projectId:"",issueId:"",comments:[],log:[],attachments:[],blockReason:"",waitingOn:"",sample:false,created:nowISO(),createdBy:r.label};}
+function blankTask(unit){const r=role();return {id:uid("t"),title:"",description:"",unit:unit||r.unit||UNITS[0],category:"Administrative",tier:"Deliverable",owner:"",accountable:HEAD_OF[unit||r.unit||UNITS[0]],priority:"Normal",status:"NS",start:todayStr(),due:"",completed:"",recurrence:"",deps:[],subtasks:[],link:"",projectId:"",issueId:"",comments:[],log:[],attachments:[],blockReason:"",waitingOn:"",sample:false,created:nowISO(),createdBy:r.label};}
 function openTask(id,unit,seatId){
   const t=id?S.tasks.get(id):null;if(id&&!t)return;
   M={orig:t?JSON.parse(JSON.stringify(t)):null,t:t?JSON.parse(JSON.stringify(t)):blankTask(unit),isNew:!t,err:""};
@@ -1952,7 +1868,7 @@ async function clearSample(){
 
 /* ===================== events ===================== */
 document.addEventListener("click",e=>{
-  const el=e.target.closest("[data-tab],[data-open],[data-unit],[data-ack],[data-close],[data-save],[data-addsub],[data-sub-del],[data-addatt],[data-att-del],[data-addcmt],[data-cancel],[data-flag],[data-new],[data-done],[data-sort],[data-orgmode],[data-zoom],[data-pw],[data-logout],[data-acc],[data-badd],[data-bsave],[data-bcancel],[data-bup],[data-bdown],[data-newseatunit],[data-newseatsub],[data-newsub],[data-structure],[data-savestruct],[data-st-add],[data-st-del],[data-collapse],[data-ozoom],[data-fit],[data-expandall],[data-fs],[data-quickstart],[data-newseat],[data-openseat],[data-meta],[data-reissue],[data-saveseat],[data-abolish],[data-adddot],[data-dot-del],[data-savemeta],[data-newtaskseat],[data-st],[data-imp],[data-rep],[data-openproject],[data-newproject],[data-ptab],[data-back],[data-editproject],[data-rows],[data-newissue],[data-openissue],[data-saveproject],[data-saveissue],[data-addteam],[data-tm-del],[data-addlink],[data-lk-del],[data-archiveproject],[data-radd],[data-rdel],[data-saverows],[data-addupd],[data-taskfromissue],[data-newtaskproject],[data-ifcat],#newBtn,#clearSample,#clearF,#csv,#repPrev,#repNext,#repCopy");
+  const el=e.target.closest("[data-tab],[data-open],[data-unit],[data-ack],[data-close],[data-save],[data-addsub],[data-sub-del],[data-addatt],[data-att-del],[data-addcmt],[data-cancel],[data-flag],[data-new],[data-done],[data-sort],[data-orgmode],[data-zoom],[data-newseatunit],[data-newseatsub],[data-newsub],[data-structure],[data-savestruct],[data-st-add],[data-st-del],[data-collapse],[data-ozoom],[data-fit],[data-expandall],[data-fs],[data-quickstart],[data-newseat],[data-openseat],[data-meta],[data-reissue],[data-saveseat],[data-abolish],[data-adddot],[data-dot-del],[data-savemeta],[data-newtaskseat],[data-st],[data-imp],[data-rep],[data-openproject],[data-newproject],[data-ptab],[data-back],[data-editproject],[data-rows],[data-newissue],[data-openissue],[data-saveproject],[data-saveissue],[data-addteam],[data-tm-del],[data-addlink],[data-lk-del],[data-archiveproject],[data-radd],[data-rdel],[data-saverows],[data-addupd],[data-taskfromissue],[data-newtaskproject],[data-ifcat],#newBtn,#clearSample,#clearF,#csv,#repPrev,#repNext,#repCopy");
   if(!el)return;
   const d0=el.dataset;
   if(d0.orgmode){S.orgMode=d0.orgmode;S.orgFit=true;render();return;}
@@ -1964,15 +1880,6 @@ document.addEventListener("click",e=>{
   if(d0.quickstart!==undefined){quickStart();return;}
   if(d0.zoom){S.orgZoom=Math.min(2,Math.max(.4,S.orgZoom+(+d0.zoom)*.15));render();return;}
   if(d0.openseat!==undefined){e.preventDefault();if(M||SM){closeModal();M=null;SM=null;}openSeat(d0.openseat);return;}
-  if(d0.pw!==undefined){openPassword(false);return;}
-  if(d0.logout!==undefined){logout();return;}
-  if(d0.acc!==undefined){if(!isDirector())return;accountAction(d0.acc);return;}
-  if(d0.badd!==undefined){if(!isDirector())return;S.bAdd={parentId:d0.badd,dept:d0.dept};render();setTimeout(()=>{const el=$("#b_title");if(el){el.focus();el.scrollIntoView({block:"center",behavior:"smooth"});}},30);return;}
-  if(d0.bsave!==undefined){builderAdd();return;}
-  if(d0.bcancel!==undefined){S.bAdd=null;render();return;}
-  if(d0.bup!==undefined){builderMove(d0.bup,-1);return;}
-  if(d0.bdown!==undefined){builderMove(d0.bdown,1);return;}
-  if(el.closest("[data-bform]"))return;
   if(d0.newseatsub!==undefined){if(!isDirector())return;closeModal();M=SM=null;const u=subunit(d0.newseatsub);if(!u)return;const mine=seatsAll().filter(x=>x.sub===u.id);const mgr=mine.find(x=>!x.reportsTo||!mine.some(y=>y.id===x.reportsTo));const head=mgr||seatsAll().find(x=>x.unit===u.deptId&&x.title.toLowerCase().includes("head"));openSeat(null,head?head.id:"");if(SM){SM.s.unit=u.deptId;SM.s.sub=u.id;drawSeat();}return;}
   if(d0.newsub!==undefined){if(!isDirector())return;openStructure(d0.newsub);return;}
   if(d0.structure!==undefined){if(!isDirector())return;openStructure();return;}
@@ -2061,7 +1968,6 @@ document.addEventListener("change",e=>{
   if(el.id==="kbView"){S.kbView=el.value;render();return;}
   if(el.id==="unitSel"){S.unitPage=el.value;render();return;}
   if(el.id==="orgView"){S.orgView=el.value;S.orgFit=true;render();return;}
-  if(el.dataset.acclevel){const a=S.accounts.get(el.dataset.acclevel);if(!a||!isDirector())return;if(a.username===S.user.username&&el.value!=="director"){toast("You cannot lower your own level.");el.value="director";return;}saveAccount(Object.assign({},a,{level:el.value}));return;}
   if(el.id==="f_seat"){const st=S.seats.get(el.value);if(st){$("#f_owner").value=seatPerson(st)||st.title+" (vacant)";const p=st.reportsTo&&S.seats.get(st.reportsTo);if(p)$("#f_acc").value=seatPerson(p)?`${seatPerson(p)} (${p.title})`:p.title;if($("#f_unit")&&!$("#f_unit").disabled)$("#f_unit").value=st.unit;}return;}
   if(el.id==="impFile"){importFileChosen(el);return;}
   if(el.id==="st_restore"){restoreFile(el);return;}
@@ -2073,114 +1979,13 @@ document.addEventListener("change",e=>{
 });
 document.addEventListener("input",e=>{const el=e.target;if(el.id==="orgQ"){S.orgQ=el.value;const q=el.value.toLowerCase();document.querySelectorAll("#orgStage .seatg").forEach(g=>{const s=S.seats.get(g.dataset.openseat);if(!s)return;const hit=!q||(s.title+" "+(s.occupant||"")+" "+(s.code||"")+" "+(s.scope||"")).toLowerCase().includes(q);g.classList.toggle("dim",!hit&&!!q);g.classList.toggle("hit",hit&&!!q);});if(S.orgMode==="list"){const v=document.querySelector(".org-list");if(v){const tmp=document.createElement("div");tmp.innerHTML=orgList(orgScope());v.outerHTML=tmp.innerHTML;}}return;}if(el.dataset.f==="q"||el.dataset.f==="owner"){S.filters[el.dataset.f]=el.value;const tb=document.querySelector("table.reg tbody");if(tb){const tmp=document.createElement("div");tmp.innerHTML=vRegister();tb.innerHTML=tmp.querySelector("tbody").innerHTML;const c=document.querySelector("#csv+span");const c2=tmp.querySelector("#csv+span");if(c&&c2)c.textContent=c2.textContent;}}});
 document.getElementById("burger").addEventListener("click",()=>$("#side").classList.toggle("open"));
-document.addEventListener("keydown",e=>{const bf=e.target.closest&&e.target.closest("[data-bform]");if(bf){if(e.key==="Enter"&&e.target.tagName!=="TEXTAREA"){e.preventDefault();builderAdd();return;}if(e.key==="Escape"){S.bAdd=null;render();return;}}
-  if(e.key==="Escape"){const a=$("#ask");if(a){a.remove();return;}if(M||SM||PM||RM||IMod||ST){M=null;SM=null;PM=null;RM=null;IMod=null;ST=null;closeModal();}}});
+document.addEventListener("keydown",e=>{if(e.key==="Escape"){const a=$("#ask");if(a){a.remove();return;}if(M||SM||PM||RM||IMod||ST){M=null;SM=null;PM=null;RM=null;IMod=null;ST=null;closeModal();}}});
 
 /* ===================== boot ===================== */
-/* ===================== accounts (website edition) ===================== */
-const ACC_LEVELS=[["director","Director — everything"],["head","Department head — own department"],["member","Member — own tasks, view the rest"]];
-const enc=x=>new TextEncoder().encode(x);const hex=b=>[...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,"0")).join("");
-async function pwHash(pw,salt){const key=await crypto.subtle.importKey("raw",enc(pw),"PBKDF2",false,["deriveBits"]);return hex(await crypto.subtle.deriveBits({name:"PBKDF2",salt:enc(salt),iterations:120000,hash:"SHA-256"},key,256));}
-function randStr(n,alpha){alpha=alpha||"abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789";const a=new Uint8Array(n);crypto.getRandomValues(a);return [...a].map(x=>alpha[x%alpha.length]).join("");}
-function tempPassword(){return randStr(4)+"-"+randStr(4);}
-function suggestUsername(name){const parts=(name||"").replace(/^(OIC|ACTING):\s*/,"").replace(/[^A-Za-z\s.]/g,"").trim().split(/[\s.]+/).filter(Boolean);let u=parts.length>1?(parts[0][0]+parts[parts.length-1]).toLowerCase():(parts[0]||"user").toLowerCase();u=u.replace(/[^a-z0-9]/g,"")||"user";let c=u,i=2;while(S.accounts.has(c)){c=u+i++;}return c;}
-function levelFor(seat){if(!seat)return "member";if(!seat.reportsTo)return "director";const isRoot=deptRoots(seat.unit).some(x=>x.id===seat.id);return isRoot?"head":"member";}
-function accountForSeat(id){return [...S.accounts.values()].find(a=>a.seatId===id);}
-async function saveAccount(a){S.accounts.set(a.username,a);if(S.db){try{await S.db.doc("accounts/"+a.username).set(a);}catch(e){toast("Save failed: "+(e.message||e.code||"unknown"));}}render();}
-async function deleteAccount(u){S.accounts.delete(u);if(S.db){try{await S.db.doc("accounts/"+u).delete();}catch(e){}}render();}
-function sessionLoad(){try{return JSON.parse(localStorage.getItem("edgg.session")||"null");}catch(e){return null;}}
-function sessionSave(x){try{if(x)localStorage.setItem("edgg.session",JSON.stringify(x));else localStorage.removeItem("edgg.session");}catch(e){}}
-function accountsSynced(){ // called after every accounts snapshot: validate the session
-  const ses=sessionLoad();
-  if(ses){const a=S.accounts.get(ses.username);if(a&&!a.disabled&&a.hash.startsWith(ses.token)){S.user={username:a.username,name:a.name,level:a.level,seatId:a.seatId||"",unit:a.unit||""};if(a.mustChange&&!S._pwPrompted){S._pwPrompted=true;setTimeout(()=>openPassword(true),200);}}else{S.user=null;sessionSave(null);}}
-  const sel=$("#roleSel");if(sel)sel.hidden=true;
-  render();
-}
-async function login(username,pw){
-  username=(username||"").trim().toLowerCase();const a=S.accounts.get(username);
-  if(!a||a.disabled)return "Unknown username, or the account is disabled.";
-  const h=await pwHash(pw,a.salt);if(h!==a.hash)return "Wrong password.";
-  sessionSave({username,token:h.slice(0,16)});const n=Object.assign({},a,{lastLogin:nowISO()});await saveAccount(n);
-  S.user={username:a.username,name:a.name,level:a.level,seatId:a.seatId||"",unit:a.unit||""};S.tab=a.level==="director"?"board":"units";if(role().unit)S.unitPage=role().unit;
-  if(a.mustChange){S._pwPrompted=true;setTimeout(()=>openPassword(true),200);}
-  render();return "";
-}
-function logout(){sessionSave(null);S.user=null;S._pwPrompted=false;render();}
-function renderLogin(){
-  const first=S.accountsLoaded&&S.accounts.size===0;const connecting=!S.accountsLoaded;
-  $("#main").innerHTML=`<div class="gate"><div class="lbl">WRLD Capital Holdings · ${esc(S.struct.group.short||"EDGG")}</div>
-  ${connecting?`<h2>Connecting…</h2><p>Loading the shared database.</p>`:first?`<h2>Create the administrator</h2><p>No accounts exist yet. This first account is the Director's and can create everyone else's from the org chart.</p>
-    <div class="field"><label>Your name</label><input type="text" id="lg_name" placeholder="e.g. P. Cruz"></div><div class="field" style="margin-top:8px"><label>Username</label><input type="text" id="lg_user" placeholder="e.g. pcruz" autocomplete="username"></div><div class="field" style="margin-top:8px"><label>Password (8+ characters)</label><input type="password" id="lg_pw" autocomplete="new-password"></div><div class="field" style="margin-top:8px"><label>Repeat password</label><input type="password" id="lg_pw2" autocomplete="new-password"></div>
-    <div class="err" id="lg_err" hidden style="margin-top:10px"></div><button class="btn primary" id="lg_create" style="width:100%;justify-content:center;padding:10px;margin-top:12px">Create administrator account</button>`
-  :`<h2>Sign in</h2><p>Use the username and password the Director gave you. Every change is recorded under your name.</p>
-    <div class="field"><label>Username</label><input type="text" id="lg_user" autocomplete="username" autocapitalize="none"></div><div class="field" style="margin-top:8px"><label>Password</label><input type="password" id="lg_pw" autocomplete="current-password"></div>
-    <div class="err" id="lg_err" hidden style="margin-top:10px"></div><button class="btn primary" id="lg_go" style="width:100%;justify-content:center;padding:10px;margin-top:12px">Sign in</button><p class="small muted" style="margin:10px 0 0">Forgot it? Ask the Director to reset your password in Settings → Accounts.</p>`}
-  </div>`;
-  const err=m=>{const e=$("#lg_err");if(!e)return;e.hidden=!m;e.textContent=m;};
-  const go=$("#lg_go");if(go){const doLogin=async()=>{go.disabled=true;const m=await login($("#lg_user").value,$("#lg_pw").value);go.disabled=false;if(m)err(m);};go.onclick=doLogin;["lg_user","lg_pw"].forEach(id=>$("#"+id).addEventListener("keydown",e=>{if(e.key==="Enter")doLogin();}));setTimeout(()=>{const u=$("#lg_user");u&&u.focus();},30);}
-  const cr=$("#lg_create");if(cr)cr.onclick=async()=>{const name=$("#lg_name").value.trim(),user=$("#lg_user").value.trim().toLowerCase().replace(/[^a-z0-9._-]/g,""),pw=$("#lg_pw").value,pw2=$("#lg_pw2").value;
-    if(!name||!user)return err("Name and username are required.");if(pw.length<8)return err("Use at least 8 characters.");if(pw!==pw2)return err("The passwords do not match.");if(S.accounts.size)return err("An administrator already exists — sign in instead.");
-    const salt=randStr(16);const a={username:user,name,level:"director",seatId:"",unit:"",salt,hash:await pwHash(pw,salt),mustChange:false,disabled:false,created:nowISO(),createdBy:name};await saveAccount(a);await login(user,pw);toast("Welcome. Next: create the others' accounts from Settings → Accounts.");};
-}
-/* change password */
-function openPassword(forced){
-  $("#modals").innerHTML=`<div class="ov" id="ov"><div class="dlg narrow" role="dialog"><div class="dh"><h2>${forced?"Set your own password":"Change password"}</h2>${forced?"":`<button class="x" data-close aria-label="Close">×</button>`}</div><div class="db">${forced?`<div class="note">You signed in with a temporary password. Choose your own before continuing.</div>`:""}
-    ${forced?"":`<div class="field"><label>Current password</label><input type="password" id="pw_old" autocomplete="current-password"></div>`}<div class="field" style="margin-top:8px"><label>New password (8+ characters)</label><input type="password" id="pw_new" autocomplete="new-password"></div><div class="field" style="margin-top:8px"><label>Repeat new password</label><input type="password" id="pw_new2" autocomplete="new-password"></div><div class="err" id="pw_err" hidden style="margin-top:10px"></div>
-  </div><div class="df"><span class="spacer"></span>${forced?"":`<button class="btn" data-close type="button">Cancel</button>`}<button class="btn primary" id="pw_save" type="button">Save password</button></div></div></div>`;
-  $("#pw_save").onclick=async()=>{const e=$("#pw_err");const show=m=>{e.hidden=false;e.textContent=m;};const a=S.accounts.get(S.user.username);if(!a)return show("Account not found.");
-    if(!forced){const h=await pwHash($("#pw_old").value,a.salt);if(h!==a.hash)return show("Current password is wrong.");}
-    const pw=$("#pw_new").value;if(pw.length<8)return show("Use at least 8 characters.");if(pw!==$("#pw_new2").value)return show("The passwords do not match.");
-    const salt=randStr(16);const n=Object.assign({},a,{salt,hash:await pwHash(pw,salt),mustChange:false,pwChanged:nowISO()});sessionSave({username:a.username,token:n.hash.slice(0,16)});closeModal();await saveAccount(n);toast("Password changed");};
-  setTimeout(()=>{const f=$(forced?"#pw_new":"#pw_old");f&&f.focus();},30);
-}
-/* admin: accounts panel + provisioning */
-function vAccounts(){
-  if(!isDirector())return "";
-  const seats=seatsAll().filter(x=>seatPerson(x)).sort((a,b)=>UNITS.indexOf(a.unit)-UNITS.indexOf(b.unit)||seatLayer(a)-seatLayer(b));
-  const missing=seats.filter(x=>!accountForSeat(x.id));
-  const rows=seats.map(x=>{const a=accountForSeat(x.id);return `<tr><td class="t" style="cursor:default"><b>${esc(seatPerson(x))}</b><div class="small muted">${esc(x.title)} · ${esc(USHORT[x.unit])}</div></td><td>${a?`<code>${esc(a.username)}</code>${a.disabled?" "+pill("st-CX","disabled"):a.mustChange?" "+pill("st-WO","temp password"):" "+pill("st-DN","active")}`:`<span class="muted small">no account</span>`}</td><td>${a?`<select data-acclevel="${esc(a.username)}">${ACC_LEVELS.map(([v,l])=>`<option value="${v}" ${a.level===v?"selected":""}>${l.split(" — ")[0]}</option>`).join("")}</select>`:`<span class="small muted">${ACC_LEVELS.find(l=>l[0]===levelFor(x))[1].split(" — ")[0]}</span>`}</td><td class="small muted num">${a&&a.lastLogin?stamp(a.lastLogin):"—"}</td><td><div class="row" style="gap:4px">${a?`<button class="btn sm" data-acc="reset:${esc(a.username)}">Reset password</button><button class="btn sm ghost" data-acc="${a.disabled?"enable":"disable"}:${esc(a.username)}">${a.disabled?"Enable":"Disable"}</button><button class="btn sm ghost danger" data-acc="delete:${esc(a.username)}">Delete</button>`:`<button class="btn sm primary" data-acc="create:${x.id}">Create account</button>`}</div></td></tr>`;}).join("");
-  const orphans=[...S.accounts.values()].filter(a=>!a.seatId||!S.seats.get(a.seatId)||S.seats.get(a.seatId).abolished);
-  return `<div class="panel" style="margin-bottom:12px"><div class="ph"><h2>Accounts</h2><span class="small muted">one per person on the org chart · ${S.accounts.size} account${S.accounts.size===1?"":"s"}</span><span class="spacer"></span>${missing.length?`<button class="btn primary sm" data-acc="createall">Create ${missing.length} missing account${missing.length>1?"s":""}</button>`:""}</div><div class="pb">
-    <p class="small muted" style="margin:0 0 10px">Accounts are created from the people named on the org chart. Each gets a username and a temporary password that you hand to them; they set their own password at first sign-in. Level decides what they can change: Director everything, Department head their department's tasks and projects, Member their own tasks (and comments and issues) with everything else read-only. Put a name in a seat first, then create the account.</p>
-    <div class="tblwrap"><table class="reg" style="min-width:720px"><thead><tr><th>Person · seat</th><th>Username</th><th>Level</th><th>Last sign-in</th><th></th></tr></thead><tbody>${rows||`<tr><td colspan="5" class="empty">No filled seats yet — put names into the org chart first.</td></tr>`}
-    ${orphans.map(a=>`<tr><td class="t" style="cursor:default"><b>${esc(a.name)}</b><div class="small muted">${a.level==="director"?"administrator":"not linked to a seat"}</div></td><td><code>${esc(a.username)}</code>${a.disabled?" "+pill("st-CX","disabled"):""}</td><td><select data-acclevel="${esc(a.username)}">${ACC_LEVELS.map(([v,l])=>`<option value="${v}" ${a.level===v?"selected":""}>${l.split(" — ")[0]}</option>`).join("")}</select></td><td class="small muted num">${a.lastLogin?stamp(a.lastLogin):"—"}</td><td><div class="row" style="gap:4px"><button class="btn sm" data-acc="reset:${esc(a.username)}">Reset password</button>${a.username===S.user.username?"":`<button class="btn sm ghost" data-acc="${a.disabled?"enable":"disable"}:${esc(a.username)}">${a.disabled?"Enable":"Disable"}</button><button class="btn sm ghost danger" data-acc="delete:${esc(a.username)}">Delete</button>`}</div></td></tr>`).join("")}</tbody></table></div>
-    <div class="note" style="margin-top:10px">These are app-level accounts: passwords are stored only as salted hashes, but anyone holding the database URL and workspace key can still reach the data directly. Keep those two private; move to Firebase Authentication when you need real per-user security.</div>
-  </div></div>`;
-}
-let CRED=null;
-async function provision(seatIds){
-  const made=[];
-  for(const id of seatIds){const x=S.seats.get(id);if(!x||accountForSeat(id))continue;
-    const same=[...S.accounts.values()].find(acc=>!acc.seatId&&acc.name.trim().toLowerCase()===seatPerson(x).trim().toLowerCase());
-    if(same){await saveAccount(Object.assign({},same,{seatId:x.id,unit:x.unit}));continue;}
-    const username=suggestUsername(seatPerson(x));const pw=tempPassword();const salt=randStr(16);
-    const a={username,name:seatPerson(x),level:levelFor(x),seatId:x.id,unit:x.unit,salt,hash:await pwHash(pw,salt),mustChange:true,disabled:false,created:nowISO(),createdBy:role().label};S.accounts.set(username,a);if(S.db){try{await S.db.doc("accounts/"+username).set(a);}catch(e){}}made.push({name:a.name,seat:x.title,username,pw,level:a.level});}
-  if(made.length){CRED=made;showCredentials();}render();
-}
-function showCredentials(){
-  const rows=CRED;
-  $("#modals").innerHTML=`<div class="ov" id="ov"><div class="dlg" role="dialog"><div class="dh"><h2>Temporary passwords</h2><button class="x" data-close aria-label="Close">×</button></div><div class="db"><div class="note">Shown once. Give each person their line privately; they will be asked to choose their own password at first sign-in.</div>
-    <div class="tblwrap"><table class="reg" style="min-width:0"><thead><tr><th>Person</th><th>Seat</th><th>Username</th><th>Temporary password</th><th>Level</th></tr></thead><tbody>${rows.map(r=>`<tr><td><b>${esc(r.name)}</b></td><td>${esc(r.seat)}</td><td><code>${esc(r.username)}</code></td><td><code style="font-size:14px">${esc(r.pw)}</code></td><td>${esc(r.level)}</td></tr>`).join("")}</tbody></table></div>
-  </div><div class="df"><button class="btn sm" data-acc="copycred" type="button">Copy as text</button><button class="btn sm" data-acc="dlcred" type="button">Download CSV</button><span class="spacer"></span><button class="btn primary" data-close type="button">Done</button></div></div></div>`;
-}
-async function accountAction(a){
-  const [op,arg]=a.split(":");
-  if(op==="create"){await provision([arg]);return;}
-  if(op==="createall"){await provision(seatsAll().filter(x=>seatPerson(x)&&!accountForSeat(x.id)).map(x=>x.id));return;}
-  if(op==="copycred"){copyText(CRED.map(r=>`${r.name} (${r.seat}) — username: ${r.username} — temporary password: ${r.pw}`).join("\n"),"Copied");return;}
-  if(op==="dlcred"){deliver(`EDGG-accounts-${todayStr()}.csv`,"Name,Seat,Username,Temporary password,Level\r\n"+CRED.map(r=>[r.name,r.seat,r.username,r.pw,r.level].map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(",")).join("\r\n"),"Credentials");return;}
-  const acc=S.accounts.get(arg);if(!acc)return;
-  if(op==="reset"){const pw=tempPassword();const salt=randStr(16);const n=Object.assign({},acc,{salt,hash:await pwHash(pw,salt),mustChange:true,disabled:false});await saveAccount(n);CRED=[{name:n.name,seat:(S.seats.get(n.seatId)||{}).title||"—",username:n.username,pw,level:n.level}];showCredentials();return;}
-  if(op==="disable"){if(arg===S.user.username){toast("You cannot disable your own account.");return;}await saveAccount(Object.assign({},acc,{disabled:true}));toast("Disabled");return;}
-  if(op==="enable"){await saveAccount(Object.assign({},acc,{disabled:false}));toast("Enabled");return;}
-  if(op==="delete"){if(arg===S.user.username){toast("You cannot delete your own account.");return;}askConfirm("Delete this account?",`${acc.name} (${acc.username}) will no longer be able to sign in. Their tasks and log entries stay.`,async ok=>{if(!ok)return;await deleteAccount(arg);toast("Account deleted");});return;}
-}
-
 (function boot(){
   try{const th=localStorage.getItem("edgg.theme");if(th)document.documentElement.setAttribute("data-theme",th);}catch(e){}
-  if(ACCOUNTS){S.accounts=new Map();S.accountsLoaded=false;render();}
-  else{let r=null;try{r=localStorage.getItem("edgg.role");}catch(e){}
-  if(r&&ROLES.some(x=>x.id===r)){setRole(r);}else render();}
+  let r=null;try{r=localStorage.getItem("edgg.role");}catch(e){}
+  if(r&&ROLES.some(x=>x.id===r)){setRole(r);}else render();
   initDb();
 })();
 </script>
