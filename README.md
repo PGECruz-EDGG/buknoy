@@ -28,15 +28,32 @@ To update the app later, upload a new `index.html` over the old one (Add file �
    }
    ```
 
-   Anyone who has the database URL and the workspace key can read and write, so treat both like a password. If you later want named logins with per-user rights, Firebase Authentication can be added without changing the app's data.
+   Anyone who has the database URL and the workspace key can read and write directly, so treat both like a password and share the site link only inside WRLD. The app's own sign-in (section 3) controls what each person can change inside the app and stores passwords only as salted hashes; it is not a substitute for those two secrets. If you later want database-level security per user, Firebase Authentication can be added without changing the app's data.
 4. Click the gear → **Project settings**, scroll to *Your apps*, click the **</>** (web) icon, register the app (no hosting needed), and copy the `firebaseConfig` object shown.
-5. Open the site, pick your role, go to **Settings**, paste the `firebaseConfig` object, enter the workspace key, and click **Save and connect**. The sidebar indicator turns green ("live · shared"). Each unit head does the same once on each device they use.
+5. Open `index.html` in a text editor (Notepad is fine). Near the top there are two lines:
+
+   ```js
+   window.EDGG_FIREBASE = null;
+   window.EDGG_WORKSPACE = "edgg";
+   ```
+
+   Replace `null` with the `firebaseConfig` object you copied and set the workspace key to the one in your rules. Save, and upload this `index.html` to the repository (step 1.3 or an update). From then on **every phone, tablet and laptop that opens the link is connected automatically** — nothing to paste on each device — and the sidebar indicator shows green ("live · shared").
+
+   If you would rather not edit the file, Settings → Shared database lets each device paste the config instead.
 
 Until Firebase is configured the app still works, but only on that browser (data is kept in the browser's storage and is not shared).
 
-## 3. First run
+## How the sharing works
 
-- Choose your role on the entry screen. There are no passwords; every change is stamped with the role and an Asia/Manila timestamp in the record's change log.
+Every record (task, project, issue, seat, account) is one entry in the Firebase Realtime Database. When anyone saves a change, Firebase pushes it to every open copy of the site within about a second — the Director's Command Board on the projector updates while a unit head changes a status from a phone in the field. If a phone loses signal, changes made meanwhile are queued and sent when it reconnects. Nothing is stored on GitHub except the app itself; GitHub Pages only serves the page.
+
+## 3. First run and accounts
+
+- The first person to open the connected site creates the **administrator** account (the Director). After that, the entry screen is a sign-in.
+- **Settings → Accounts** lists everyone named on the org chart. **Create missing accounts** makes one account per person with a username (initial + surname) and a temporary password, shown once with copy and CSV buttons; hand each line to the person privately. They set their own password at first sign-in, and can change it later from the sidebar.
+- Levels: **Director** can change everything; **Department head** (the top seat of a department) can edit their department's tasks, projects and issues; **Member** can create and edit their own tasks, comment anywhere, log and update project issues, and read everything else. The level is set automatically from the seat's place on the chart and can be changed in the Accounts table. Reset password, disable and delete are there too.
+- Every change is stamped with the person's name and seat and an Asia/Manila timestamp in the record's change log.
+- To go back to the password-free role dropdown, set `window.EDGG_ACCOUNTS = false;` in `index.html`.
 - **Settings → Load sample data** fills the app with 26 tasks, 12 seats, 3 projects and 11 issues, all tagged SAMPLE, so every page has something to show. **Clear SAMPLE records** removes them in one click when you are ready for real data.
 - **Settings → Download backup** saves every record as one JSON file; keep one before large changes. **Restore from backup** puts it back.
 - The ⤢ button in the sidebar switches the whole app to full screen for the MANCOM projector.
