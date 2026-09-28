@@ -490,6 +490,7 @@ ul.otree ul::before{content:"";position:absolute;top:0;left:50%;border-left:2px 
     <label class="lbl" for="roleSel">Working as</label>
     <select id="roleSel" aria-label="Role"></select>
     <div id="userChip" hidden class="uchip"><div class="av" id="userAv"></div><div><b id="userName"></b><div class="small" id="userSeat"></div></div></div>
+    <div id="viewMode" hidden style="margin:6px 0"></div>
     <div id="userBtns" hidden class="row" style="gap:4px"><button class="btn sm ghost" data-pw style="color:#E4D8C8">Change password</button><button class="btn sm ghost" data-logout style="color:#E4D8C8">Sign out</button></div>
     <button class="btn primary" id="newBtn" style="width:100%;justify-content:center">+ New task</button>
     <div class="row" style="gap:4px"><button class="btn sm ghost" data-st="theme" title="Dark / light" style="color:#E4D8C8">◐ Theme</button><button class="btn sm ghost" data-st="fullscreen" title="Full screen" style="color:#E4D8C8">⤢ Full screen</button></div>
@@ -550,7 +551,7 @@ const DEPTS=["Construction","Finance & Accounting","Human Resources","Legal","Ad
 const META_DEFAULT={docNo:"ORG-EDGG-001",revision:"Rv 01",issueDate:"",supersedes:"—",preparedBy:"Director, EDGG",approvedBy:"President",nextReview:"",owner:"Director, EDGG",scope:"Enterprise Development and Growth Group — Project Development (incl. PET), Business Development, Sales, Marketing Communications",pendingStructural:false,structuralNotes:[]};
 
 /* ===================== state ===================== */
-const S={orgActual:false,struct:null,events:new Map(),evTemplates:null,tasks:new Map(),esc:new Map(),seats:new Map(),projects:new Map(),issues:new Map(),projectId:null,pTab:"overview",issueF:{cat:"",status:"open",sev:"",project:""},meta:Object.assign({},META_DEFAULT),orgView:"all",orgMode:"builder",bAdd:null,bEdit:null,orgZoom:1,role:null,tab:"board",unitPage:UNITS[0],db:null,dl:null,live:false,
+const S={viewMode:(()=>{try{return localStorage.getItem("edgg.viewmode")||"director";}catch(e){return "director";}})(),pScope:(()=>{try{return localStorage.getItem("edgg.pscope")||"mine";}catch(e){return "mine";}})(),orgActual:false,struct:null,events:new Map(),evTemplates:null,tasks:new Map(),esc:new Map(),seats:new Map(),projects:new Map(),issues:new Map(),projectId:null,pTab:"overview",issueF:{cat:"",status:"open",sev:"",project:""},meta:Object.assign({},META_DEFAULT),orgView:"all",orgMode:"builder",bAdd:null,bEdit:null,orgZoom:1,role:null,tab:"board",unitPage:UNITS[0],db:null,dl:null,live:false,
   filters:{q:"",unit:"",cat:"",tier:"",owner:"",status:"",prio:"",from:"",to:"",showCX:false},
   sort:{k:"due",d:1},reportDate:null,kbView:"all"};
 applyStruct(JSON.parse(JSON.stringify(DEFAULT_STRUCT)));
@@ -741,20 +742,26 @@ function taskRow(t,why){
 
 const ICONS={events:'<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/><circle cx="12" cy="15.5" r="1.5"/></svg>',board:'<svg viewBox="0 0 24 24"><rect x="3" y="3" width="8" height="8" rx="1.5"/><rect x="13" y="3" width="8" height="5" rx="1.5"/><rect x="13" y="11" width="8" height="10" rx="1.5"/><rect x="3" y="14" width="8" height="7" rx="1.5"/></svg>',kanban:'<svg viewBox="0 0 24 24"><rect x="3" y="3" width="5" height="18" rx="1.2"/><rect x="9.5" y="3" width="5" height="12" rx="1.2"/><rect x="16" y="3" width="5" height="8" rx="1.2"/></svg>',register:'<svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg>',timeline:'<svg viewBox="0 0 24 24"><path d="M3 7h9M8 12h11M5 17h7"/><path d="M14 5v4M12 10v4M10 15v4" opacity=".5"/></svg>',routines:'<svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.3-5.6"/><path d="M20 4v5h-5"/></svg>',units:'<svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19a5.5 5.5 0 0 1 11 0"/><circle cx="17" cy="9" r="2.5"/><path d="M15.5 14.2A4.5 4.5 0 0 1 21.5 18"/></svg>',projects:'<svg viewBox="0 0 24 24"><path d="M3 9.5V19a1.5 1.5 0 0 0 1.5 1.5h15A1.5 1.5 0 0 0 21 19V8.5A1.5 1.5 0 0 0 19.5 7H12l-2-2.5H4.5A1.5 1.5 0 0 0 3 6z"/></svg>',org:'<svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="4" rx="1"/><rect x="3" y="15" width="6" height="4" rx="1"/><rect x="15" y="15" width="6" height="4" rx="1"/><path d="M12 7v4M6 15v-4h12v4"/></svg>',report:'<svg viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4M9 12h6M9 16h6"/></svg>',io:'<svg viewBox="0 0 24 24"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v3a1.5 1.5 0 0 0 1.5 1.5h13A1.5 1.5 0 0 0 20 19v-3"/></svg>'};
 const TABMETA={board:["Command Board","Group-wide status, attention list and escalations"],kanban:["Kanban","Drag cards between statuses by unit"],register:["Register","Every task, filterable and exportable"],timeline:["Timeline","Deliverables and workstreams against the calendar"],routines:["Routines","Recurring admin due this week and month"],events:["Events & Calendar","Project events, checklists, attendees and targeted units"],units:["Units","Each unit's working view"],projects:["Projects","Teams, completion, inventory, price lists and issues"],org:["Org Chart","Seats, lines and JPDFs, drawn to the WRLD standard"],report:["Weekly Report","One page for MANCOM"],io:["Import & Reports","Upload members' monitoring; download progress reports"],settings:["Settings","Shared database, AI import key, sample data and backups"]};
+const ASSISTANT_TABS=["register","kanban","events","projects","routines","report","io"];
+function assistantView(){return isDirector()&&S.viewMode==="assistant";}
+function visibleTabs(){const all=["board","kanban","register","timeline","routines","events","units","projects","org","report","io","settings"];return assistantView()?ASSISTANT_TABS:all;}
 function renderTabs(){
   const n=$("#tabs");
   const escN=[...S.esc.values()].filter(e=>!e.acked).length;
   const groups=[["Monitor",[["board","Command Board",isDirector()&&escN?escN:0],["kanban","Kanban"],["register","Register",active().length],["timeline","Timeline"],["routines","Routines"],["events","Events",eventsAll().filter(e=>e.date&&e.status!=="Done"&&daysBetween(todayStr(),e.date)>=0&&daysBetween(todayStr(),e.date)<=14).length]]],["Structure",[["units","Units"],["projects","Projects",openIssues().filter(i=>i.severity==="Critical"||overdueIssue(i)).length],["org","Org Chart",orgChecks().filter(c=>c.s==="bad").length]]],["Reporting",[["report","Weekly Report"],["io","Import & Reports"]]],["System",[["settings","Settings",S.live?0:"!"]]]];
-  n.innerHTML=groups.map(([g,tabs])=>`<div class="grp">${g}</div>`+tabs.map(([id,l,c])=>`<button data-tab="${id}" class="${S.tab===id?"on":""}">${ICONS[id]||""}<span>${l}</span>${c?`<span class="cnt ${id==="board"||id==="projects"?"hot":""}">${c}</span>`:""}</button>`).join("")).join("");
+  const vis=visibleTabs();const shown=assistantView()?[["Assistant view",ASSISTANT_TABS.map(id=>groups.flatMap(g=>g[1]).find(t=>t[0]===id)).filter(Boolean)]]:groups;
+  n.innerHTML=shown.map(([g,tabs])=>`<div class="grp">${g}</div>`+tabs.filter(t=>vis.includes(t[0])).map(([id,l,c])=>`<button data-tab="${id}" class="${S.tab===id?"on":""}">${ICONS[id]||""}<span>${l}</span>${c?`<span class="cnt ${id==="board"||id==="projects"?"hot":""}">${c}</span>`:""}</button>`).join("")).join("");
   const tb=$("#topbar");const m=TABMETA[S.tab]||["",""];const r=role();
-  tb.hidden=false;tb.innerHTML=`<h2>${m[0]}</h2><span class="tsub">${m[1]}</span><span class="spacer"></span><span class="tsub">${r?esc(r.label):""} · ${fmtD(todayStr())} ${todayStr().slice(0,4)}</span>`;
+  tb.hidden=false;tb.innerHTML=`<h2>${m[0]}</h2><span class="tsub">${m[1]}</span><span class="spacer"></span>${assistantView()?`<span class="pill st-WO" title="Working on the Director's account in the simplified view">Assistant view</span>`:""}<span class="tsub">${r?esc(r.label):""} · ${fmtD(todayStr())} ${todayStr().slice(0,4)}</span>`;
   $("#side").classList.remove("open");
 }
 function render(){
   if(ACCOUNTS?!S.user:!S.role){renderGate();return;}
   $("#who").hidden=false;$("#tabs").hidden=false;
   if(ACCOUNTS){const r=role();$("#roleSel").hidden=true;$("#userChip").hidden=false;$("#userBtns").hidden=false;$("#userAv").textContent=initials(r.name);$("#userAv").style.background=r.seat?UCOL[r.seat.unit]:"var(--terracotta)";$("#userName").textContent=r.name;$("#userSeat").textContent=(r.seat?r.seat.title+" · ":"")+(ACC_LEVELS.find(l=>l[0]===r.level)||[])[1].split(" — ")[0];}
+  if(!visibleTabs().includes(S.tab))S.tab=visibleTabs()[0];
   renderTabs();
+  const vm=$("#viewMode");if(vm){vm.hidden=!isDirector();vm.innerHTML=isDirector()?`<span class="lbl" style="display:block;margin-bottom:4px">View on this device</span><span class="seg"><span class="btn sm ${assistantView()?"":"primary"}" data-viewmode="director" role="button">Director</span><span class="btn sm ${assistantView()?"primary":""}" data-viewmode="assistant" role="button">Assistant</span></span>`:"";}
   const m=$("#main");
   const f={board:vBoard,kanban:vKanban,register:vRegister,timeline:vTimeline,routines:vRoutines,units:vUnits,org:vOrg,projects:vProjects,events:vEvents,report:vReport,io:vIO,settings:vSettings}[S.tab];
   m.innerHTML=f();
@@ -976,8 +983,18 @@ function riskScore(r){const v=x=>({Low:1,Medium:2,High:3}[x]||1);return v(r.like
 function riskBand(r){const sc=riskScore(r);return sc>=6?"R":sc>=3?"A":"G";}
 function openRisks(p){return (p.risks||[]).filter(r=>r.title&&r.status!=="Closed");}
 function flaggedRisks(p){return openRisks(p).filter(r=>r.flag==="Yes"||riskBand(r)==="R");}
-function projectsAll(){return [...S.projects.values()].filter(p=>!p.archived).sort((a,b)=>(a.name||"").localeCompare(b.name||""));}
-function issuesAll(){return [...S.issues.values()];}
+function projectsRaw(){return [...S.projects.values()].filter(p=>!p.archived).sort((a,b)=>(a.name||"").localeCompare(b.name||""));}
+function pScope(){if(!role()||isDirector())return "all";return S.pScope||"mine";}
+function myProjectIds(){ // projects this person handles: leads, sits on the team of, holds below them on the chart, or (heads) anywhere in their department
+  const r=role();if(!r||isDirector())return null;const st=r.seat;const nm=(r.name||"").trim().toLowerCase();const ids=new Set();const seatUnit=id=>{const s=id&&S.seats.get(id);return s?s.unit:"";};
+  for(const p of projectsRaw()){const team=p.team||[];const mine=(st&&p.leadSeat===st.id)||(p.leadName||"").trim().toLowerCase()===nm||team.some(m=>(st&&m.seatId===st.id)||(m.name||"").trim().toLowerCase()===nm);
+    const dept=r.level==="head"&&r.unit&&(seatUnit(p.leadSeat)===r.unit||p.leadDept===r.unit||team.some(m=>seatUnit(m.seatId)===r.unit||m.dept===r.unit));
+    if(mine||dept)ids.add(p.id);}
+  const seats=[st].concat(r.covered||[]).filter(Boolean);for(const s of seats){for(const p of seatProjects(s).concat(rolledProjects(s)))ids.add(p.id);}
+  return ids;}
+function projectsAll(){const raw=projectsRaw();if(pScope()!=="mine")return raw;const ids=myProjectIds();return ids?raw.filter(p=>ids.has(p.id)):raw;}
+function issuesAll(){const all=[...S.issues.values()];if(pScope()!=="mine")return all;const ids=myProjectIds();return ids?all.filter(i=>!i.projectId||ids.has(i.projectId)):all;}
+function eventsAll(){const all=[...S.events.values()].filter(e=>e.status!=="Cancelled"||S.evShowCX);if(pScope()!=="mine")return all;const ids=myProjectIds();return ids?all.filter(e=>!e.projectId||ids.has(e.projectId)):all;}
 function openIssues(){return issuesAll().filter(i=>IOPEN(i.status));}
 function overdueIssue(i){return IOPEN(i.status)&&i.due&&i.due<todayStr()?daysBetween(i.due,todayStr()):0;}
 function projectIssues(pid){return issuesAll().filter(i=>i.projectId===pid);}
@@ -997,7 +1014,7 @@ function vProjects(){
       <div class="pc-mid"><div class="ring" style="--p:${pct}"><b class="num">${pct}%</b></div><div class="pc-kv"><div><span>Status</span><b>${esc(pj.status||"—")}</b></div><div><span>Lead</span><b>${esc(leadName(pj))}</b></div>${pj.subId&&subunit(pj.subId)?`<div style="grid-column:1/-1"><span>Team</span><b>${esc(subLabel(pj.subId))}</b></div>`:""}<div><span>Team</span><b>${(pj.team||[]).length} member${(pj.team||[]).length===1?"":"s"}</b></div><div><span>Target</span><b>${pj.target?fmtD(pj.target):"—"}</b></div></div></div>
       <div class="pc-inv">${inv.total?`<div class="ibar"><i style="width:${inv.total?100*inv.sold/inv.total:0}%" class="s"></i><i style="width:${inv.total?100*inv.reserved/inv.total:0}%" class="r"></i></div><div class="small muted num">${num(inv.sold)} sold · ${num(inv.reserved)} reserved · ${num(inv.available)} available of ${num(inv.total)} units</div>`:`<div class="small muted">No inventory recorded.</div>`}</div>
       <div class="pc-iss">${is.length?`<span class="${r.crit?"bad":""}"><b class="num">${is.length}</b> open issue${is.length>1?"s":""}${r.crit?` · ${r.crit} critical`:""}${r.od?` · ${r.od} overdue`:""}</span><div class="small muted">${Object.entries(byCat).sort((a,b)=>b[1]-a[1]).slice(0,4).map(([c,n])=>`${esc(c)} ${n}`).join(" · ")}</div>`:`<span class="muted">No open issues</span>`}</div></div>`;}).join("");
-  return `<div class="row no-print" style="margin-bottom:12px"><h2 style="font-size:22px">Projects</h2><span class="seg">${[["all","All "+all.length]].concat(PCATS.map(([k,l])=>[k,l+" "+all.filter(p=>pcat(p)===k).length])).map(([k,l])=>`<span class="btn sm ${S.pcatF===k?"primary":""}" data-pcatf="${k}" role="button">${l}</span>`).join("")}</span><span class="small muted">${openIssues().length} open issues · ${all.reduce((a,p)=>a+flaggedRisks(p).length,0)} flagged risks</span><span class="spacer" style="flex:1"></span>${ed?`<button class="btn primary sm" data-newproject>+ New project</button>`:""}</div>
+  return `<div class="row no-print" style="margin-bottom:12px"><h2 style="font-size:22px">Projects</h2>${(!isDirector()&&role())?`<span class="seg" title="My projects: the ones you lead, sit on the team of, or hold below you on the chart"><span class="btn sm ${pScope()==="mine"?"primary":""}" data-pscope="mine" role="button">My projects ${(myProjectIds()||new Set()).size}</span><span class="btn sm ${pScope()==="all"?"primary":""}" data-pscope="all" role="button">All ${projectsRaw().length}</span></span>`:""}<span class="seg">${[["all","All "+all.length]].concat(PCATS.map(([k,l])=>[k,l+" "+all.filter(p=>pcat(p)===k).length])).map(([k,l])=>`<span class="btn sm ${S.pcatF===k?"primary":""}" data-pcatf="${k}" role="button">${l}</span>`).join("")}</span><span class="small muted">${openIssues().length} open issues · ${all.reduce((a,p)=>a+flaggedRisks(p).length,0)} flagged risks</span><span class="spacer" style="flex:1"></span>${ed?`<button class="btn primary sm" data-newproject>+ New project</button>`:""}</div>
   <div class="pgrid">${cards||`<div class="panel"><div class="pb empty">No projects yet. Add the first one to start tracking its team, completion, inventory, price list and issues in one place.${isDirector()?` <button class="btn sm" data-st="loadsample">Load sample data</button>`:""}</div></div>`}</div>
   ${vIssuesBoard(null)}`;
 }
@@ -1226,7 +1243,6 @@ const DEFAULT_TEMPLATES={
   "MANCOM / Board":[["Agenda circulated"],["Deck final"],["Pre-read sent"],["Minutes and action items"]],
   "Other":[["Event concept approved"],["Budget memo approved"]]
 };
-function eventsAll(){return [...S.events.values()].filter(e=>e.status!=="Cancelled"||S.evShowCX);}
 function templatesFor(type){const t=(S.evTemplates&&S.evTemplates.types&&S.evTemplates.types[type])||null;if(t&&t.length)return t.map(x=>Object.assign({},x));return (DEFAULT_TEMPLATES[type]||DEFAULT_TEMPLATES["Other"]).map(([title,unit,qtyPer])=>({title,tag:"STANDARD",unit:unit||"",qtyPer:qtyPer||0}));}
 function chkQty(it,ev){return it.qtyPer?Math.ceil((Number(ev.expected)||0)*it.qtyPer):"";}
 function evProgress(ev){const c=(ev.checklist||[]).filter(x=>x.title);return c.length?Math.round(100*c.filter(x=>x.done).length/c.length):0;}
@@ -1364,7 +1380,7 @@ function vSettings(){
   <div class="panel"><div class="ph"><h2>Display</h2></div><div class="pb"><div class="row"><button class="btn sm" data-st="theme">Toggle dark / light</button><button class="btn sm" data-st="fullscreen">⤢ Full screen</button><button class="btn sm" data-st="switchrole">Switch role</button></div><p class="small muted" style="margin:10px 0 0">Version ${APP_VERSION} · EDGG Task Monitor · WRLD Capital Holdings</p></div></div>
   </div></div>`;
 }
-const APP_VERSION="2.4.1 (website)";
+const APP_VERSION="2.5 (website)";
 async function settingsAction(a){
   if(a==="savecfg"){let cfg;try{const t=$("#st_cfg").value.trim().replace(/^const\s+firebaseConfig\s*=\s*/,"").replace(/;\s*$/,"");cfg=Function("return ("+t+")")();}catch(e){toast("That is not a valid config object.");return;}if(!cfg||!cfg.databaseURL){toast("The config needs a databaseURL — enable Realtime Database first.");return;}
     try{localStorage.setItem(CFG_KEY,JSON.stringify(cfg));localStorage.setItem(WS_KEY,$("#st_ws").value.trim()||"edgg");}catch(e){}toast("Saved — reloading to connect");setTimeout(()=>location.reload(),600);return;}
@@ -1638,13 +1654,13 @@ function descendants(id){const out=new Set();const walk=x=>{for(const c of seatC
 function orgScope(){const all=seatsAll();if(S.orgView==="all")return all;const inUnit=all.filter(s=>s.unit===S.orgView);const ids=new Set(inUnit.map(s=>s.id));const extra=[];for(const s of inUnit){if(s.reportsTo&&!ids.has(s.reportsTo)){const p=S.seats.get(s.reportsTo);if(p&&!p.abolished&&!extra.includes(p))extra.push(p);}}return extra.concat(inUnit);}
 function orgRoots(list){const ids=new Set(list.map(s=>s.id));return list.filter(s=>!s.reportsTo||!ids.has(s.reportsTo)).sort((a,b)=>seatLayer(a)-seatLayer(b)||(a.order||0)-(b.order||0));}
 function subHead(subId){const mine=seatsAll().filter(x=>x.sub===subId);return mine.find(x=>!x.reportsTo||!mine.some(y=>y.id===x.reportsTo))||null;}
-function subProjects(subId){return projectsAll().filter(p=>p.subId===subId);}
+function subProjects(subId){return projectsRaw().filter(p=>p.subId===subId);}
 function subDescendants(subId){const out=new Set();const walk=id=>{for(const u of (S.struct.subunits||[]).filter(u=>(u.parentId||"")===id)){if(!out.has(u.id)){out.add(u.id);walk(u.id);}}};walk(subId);return out;}
 function rolledProjects(s){ // projects held below this seat: by seats in its downline, or placed on sub-units under the one it heads
   const own=new Set(seatProjects(s).map(p=>p.id));const down=descendants(s.id);const h=s.sub?subHead(s.sub):null;const subs=(h&&h.id===s.id)?subDescendants(s.sub):new Set();
-  return projectsAll().filter(p=>!own.has(p.id)&&((p.leadSeat&&down.has(p.leadSeat))||(p.team||[]).some(m=>down.has(m.seatId))||(p.subId&&subs.has(p.subId))));}
+  return projectsRaw().filter(p=>!own.has(p.id)&&((p.leadSeat&&down.has(p.leadSeat))||(p.team||[]).some(m=>down.has(m.seatId))||(p.subId&&subs.has(p.subId))));}
 function viaLabel(p,s){if(p.subId&&s.sub!==p.subId&&S.struct.subunits.some(u=>u.id===p.subId))return "via "+subLabel(p.subId);const ls=p.leadSeat?S.seats.get(p.leadSeat):null;return ls?"via "+(ls.occupant||ls.title):"via team";}
-function seatProjects(s){const h=s.sub?subHead(s.sub):null;return projectsAll().filter(p=>p.leadSeat===s.id||(p.team||[]).some(m=>m.seatId===s.id)||(h&&h.id===s.id&&p.subId===s.sub));}
+function seatProjects(s){const h=s.sub?subHead(s.sub):null;return projectsRaw().filter(p=>p.leadSeat===s.id||(p.team||[]).some(m=>m.seatId===s.id)||(h&&h.id===s.id&&p.subId===s.sub));}
 function projectHome(p){if(p.subId&&subunit(p.subId))return subLabel(p.subId);const st=p.leadSeat&&S.seats.get(p.leadSeat);return st?`${seatPerson(st)||st.title}`:(p.leadName||"");}
 async function assignProject(pid,target){ // target: {seatId} or {subId} or {} to unassign
   const p=S.projects.get(pid);if(!p||!isDirector())return;const n=JSON.parse(JSON.stringify(p));n.log=n.log||[];const before=projectHome(p)||"unassigned";
@@ -2313,7 +2329,7 @@ async function clearSample(){
 
 /* ===================== events ===================== */
 document.addEventListener("click",e=>{
-  const el=e.target.closest("[data-tab],[data-open],[data-unit],[data-ack],[data-close],[data-save],[data-addsub],[data-sub-del],[data-addatt],[data-att-del],[data-addcmt],[data-cancel],[data-flag],[data-new],[data-done],[data-sort],[data-orgmode],[data-orgactual],[data-zoom],[data-pw],[data-logout],[data-acc],[data-nameteam],[data-tmsave],[data-pqadd],[data-renamesub],[data-bedit],[data-besave],[data-bremove],[data-badd],[data-bsave],[data-bcancel],[data-bup],[data-bdown],[data-newseatunit],[data-newseatsub],[data-newsub],[data-structure],[data-savestruct],[data-st-add],[data-st-del],[data-collapse],[data-ozoom],[data-fit],[data-expandall],[data-fs],[data-quickstart],[data-newseat],[data-openseat],[data-meta],[data-reissue],[data-saveseat],[data-abolish],[data-adddot],[data-dot-del],[data-savemeta],[data-newtaskseat],[data-st],[data-imp],[data-rep],[data-evview],[data-calnav],[data-calday],[data-newevent],[data-openevent],[data-evtab],[data-saveevent],[data-ck-add],[data-ck-del],[data-ck-savestd],[data-ck-reload],[data-at-add],[data-at-del],[data-ev-addcmt],[data-ev-report],[data-evtemplates],[data-tp-add],[data-tp-del],[data-tp-save],[data-tp-reset],[data-pcatf],[data-editland],[data-saveland],[data-openproject],[data-newproject],[data-ptab],[data-back],[data-editproject],[data-rows],[data-newissue],[data-openissue],[data-saveproject],[data-saveissue],[data-addteam],[data-tm-del],[data-addlink],[data-lk-del],[data-archiveproject],[data-radd],[data-rdel],[data-saverows],[data-addupd],[data-taskfromissue],[data-newtaskproject],[data-ifcat],#newBtn,#clearSample,#clearF,#csv,#repPrev,#repNext,#repCopy");
+  const el=e.target.closest("[data-tab],[data-open],[data-unit],[data-ack],[data-close],[data-save],[data-addsub],[data-sub-del],[data-addatt],[data-att-del],[data-addcmt],[data-cancel],[data-flag],[data-new],[data-done],[data-sort],[data-orgmode],[data-orgactual],[data-zoom],[data-pw],[data-logout],[data-acc],[data-nameteam],[data-tmsave],[data-pqadd],[data-renamesub],[data-bedit],[data-besave],[data-bremove],[data-badd],[data-bsave],[data-bcancel],[data-bup],[data-bdown],[data-newseatunit],[data-newseatsub],[data-newsub],[data-structure],[data-savestruct],[data-st-add],[data-st-del],[data-collapse],[data-ozoom],[data-fit],[data-expandall],[data-fs],[data-quickstart],[data-newseat],[data-openseat],[data-meta],[data-reissue],[data-saveseat],[data-abolish],[data-adddot],[data-dot-del],[data-savemeta],[data-newtaskseat],[data-st],[data-imp],[data-rep],[data-evview],[data-calnav],[data-calday],[data-newevent],[data-openevent],[data-evtab],[data-saveevent],[data-ck-add],[data-ck-del],[data-ck-savestd],[data-ck-reload],[data-at-add],[data-at-del],[data-ev-addcmt],[data-ev-report],[data-evtemplates],[data-tp-add],[data-tp-del],[data-tp-save],[data-tp-reset],[data-pcatf],[data-pscope],[data-viewmode],[data-editland],[data-saveland],[data-openproject],[data-newproject],[data-ptab],[data-back],[data-editproject],[data-rows],[data-newissue],[data-openissue],[data-saveproject],[data-saveissue],[data-addteam],[data-tm-del],[data-addlink],[data-lk-del],[data-archiveproject],[data-radd],[data-rdel],[data-saverows],[data-addupd],[data-taskfromissue],[data-newtaskproject],[data-ifcat],#newBtn,#clearSample,#clearF,#csv,#repPrev,#repNext,#repCopy");
   if(!el)return;
   const d0=el.dataset;
   if(d0.orgmode){S.orgMode=d0.orgmode;S.orgFit=true;render();return;}
@@ -2387,6 +2403,8 @@ document.addEventListener("click",e=>{
     if(d0.close!==undefined){EM=null;closeModal();return;}
   }
   if(d0.pcatf!==undefined){S.pcatF=d0.pcatf;render();return;}
+  if(d0.pscope!==undefined){S.pScope=d0.pscope;try{localStorage.setItem("edgg.pscope",d0.pscope);}catch(e){}render();return;}
+  if(d0.viewmode!==undefined){S.viewMode=d0.viewmode;try{localStorage.setItem("edgg.viewmode",d0.viewmode);}catch(e){}if(!visibleTabs().includes(S.tab))S.tab=visibleTabs()[0];render();return;}
   if(d0.editland!==undefined){openLand(S.projectId);return;}
   if(d0.saveland!==undefined){saveLand();return;}
   if(LM&&d0.close!==undefined){LM=null;closeModal();return;}
