@@ -514,7 +514,7 @@ table.reg tr.total td{font-weight:700;border-top:2px solid var(--line2,var(--lin
     <div id="viewMode" hidden style="margin:2px 0"></div>
     <div id="userBtns" hidden class="row" style="gap:2px;flex-wrap:nowrap"><button class="btn sm ghost" data-pw style="color:#E4D8C8" title="Change password">Password</button><button class="btn sm ghost" data-logout style="color:#E4D8C8">Sign out</button><button class="btn sm ghost" data-st="theme" title="Dark / light" style="color:#E4D8C8">Theme</button><button class="btn sm ghost" data-st="fullscreen" title="Full screen" style="color:#E4D8C8">⤢</button></div>
     <button class="btn primary sm" id="newBtn" style="width:100%;justify-content:center">+ New task</button>
-    <span class="sync" id="sync"><i></i><span>connecting…</span></span>
+    <span class="sync" id="sync"><i></i><span>connecting…</span></span><span class="small muted" id="verTag" style="margin-left:6px" title="App version — if this is older than the file you uploaded, hard-refresh (Ctrl+F5)"></span>
   </div>
 </aside>
 <div class="mainwrap"><div class="topbar" id="topbar" hidden></div><main class="wrap" id="main"></main></div>
@@ -723,7 +723,7 @@ async function replicateSeat(id){const src=S.seats.get(id);if(!src||!isDirector(
   s.log=[{ts:nowISO(),role:role().label,kind:"create",text:"Replicated from "+(src.code||"")+" "+src.title}];
   for(const sib of seatChildren(src.reportsTo||"")){if(sib.id!==src.id&&(Number(sib.order)||0)>(Number(src.order)||0)){sib.order=(Number(sib.order)||0)+1;S.seats.set(sib.id,sib);if(S.db){try{await S.db.doc("seats/"+sib.id).set(sib);}catch(e){}}}}
   await saveSeat(s);toast(`Replicated: ${code||s.title} — ${s.title} (vacant)`);openSeat(s.id);}
-async function saveSeat(s){
+async function saveSeat(s){delete s.pos;
   const old=S.seats.get(s.id);const was=old?seatPerson(old):"",now=seatPerson(s);
   s.updated=nowISO();s.updatedBy=role()?role().label:"?";S.seats.set(s.id,s);
   if(S.db){try{await S.db.doc("seats/"+s.id).set(s);}catch(e){toast("Save failed: "+(e.message||e.code||"unknown"));}}
@@ -870,7 +870,8 @@ function renderTabs(){
   tb.hidden=false;tb.innerHTML=`<h2>${m[0]}</h2><span class="tsub">${m[1]}</span><span class="spacer"></span>${viewingAs()?`<span class="pill st-BL" title="You are seeing the app as this person sees it; nothing can be saved until you exit">Preview as ${esc(role().name)} · read-only</span>`:""}${assistantView()?`<span class="pill st-WO" title="Working on the Director's account in the simplified view">Assistant view</span>`:""}<span class="tsub">${r?esc(r.label):""} · ${fmtD(todayStr())} ${todayStr().slice(0,4)}</span>`;
   $("#side").classList.remove("open");
 }
-function render(){
+function verTag(){const v=document.getElementById("verTag");if(v&&typeof APP_VERSION!=="undefined")v.textContent="v"+String(APP_VERSION).replace(/\s*\(.*\)$/,"");}
+function render(){verTag();
   const bi=$("#brandImg");if(bi&&!bi.dataset.ok){bi.src=BUKNOY_IMG;bi.dataset.ok="1";}
   if(ACCOUNTS?!S.user:!S.role){renderGate();return;}
   $("#who").hidden=false;$("#tabs").hidden=false;
@@ -1627,7 +1628,7 @@ function vSettings(){
   <div class="panel"><div class="ph"><h2>Display</h2></div><div class="pb"><div class="row"><button class="btn sm" data-st="theme">Toggle dark / light</button><button class="btn sm" data-st="fullscreen">⤢ Full screen</button><button class="btn sm" data-st="switchrole">Switch role</button></div><p class="small muted" style="margin:10px 0 0">Version ${APP_VERSION} · EDGG Monitoring · WRLD Capital Holdings</p></div></div>
   </div></div>`;
 }
-const APP_VERSION="4.3 (website)";
+const APP_VERSION="4.4 (website)";
 async function settingsAction(a){
   if(a==="savecfg"){let cfg;try{const t=$("#st_cfg").value.trim().replace(/^const\s+firebaseConfig\s*=\s*/,"").replace(/;\s*$/,"");cfg=Function("return ("+t+")")();}catch(e){toast("That is not a valid config object.");return;}if(!cfg||!cfg.databaseURL){toast("The config needs a databaseURL — enable Realtime Database first.");return;}
     try{localStorage.setItem(CFG_KEY,JSON.stringify(cfg));localStorage.setItem(WS_KEY,$("#st_ws").value.trim()||"edgg");}catch(e){}toast("Saved — reloading to connect");setTimeout(()=>location.reload(),600);return;}
@@ -1881,7 +1882,7 @@ function htmlToText(sc){
 
 /* ===================== org chart ===================== */
 function seatsAll(){return [...S.seats.values()].filter(s=>!s.abolished);}
-function seatChildren(id){return seatsAll().filter(s=>s.reportsTo===id).sort((a,b)=>(a.order||0)-(b.order||0)||a.title.localeCompare(b.title));}
+function seatChildren(id){return seatsAll().filter(s=>s.reportsTo===id).sort((a,b)=>seatRank(a)-seatRank(b)||(a.order||0)-(b.order||0)||a.title.localeCompare(b.title));}
 function seatLayer(s){let n=1,c=s,g=0;while(c&&c.reportsTo&&S.seats.get(c.reportsTo)&&g++<40){c=S.seats.get(c.reportsTo);n++;}return n;}
 function occ(s){if(s.status==="VACANT")return "VACANT";if(s.status==="OIC")return "OIC: "+(s.occupant||"—");if(s.status==="ACTING")return "ACTING: "+(s.occupant||"—");return s.occupant||"—";}
 function seatPerson(s){return s&&s.status!=="VACANT"?(s.occupant||""):"";}
@@ -2167,7 +2168,6 @@ function orgLayout(seats,opts){
   let spread=0;for(const d in minR)spread=Math.max(spread,maxR[d]-minR[d]);const VG2=VG+spread*STEP;
   for(const s of seats){const p=pos.get(s.id);if(!p)continue;p.y=PADT+p.depth*(H+VG2)+(p.rank-minR[p.depth])*STEP;p.step=p.rank-minR[p.depth];}
   let totalW=x0+20,totalH=PADT+(maxDepth+1)*(H+VG2)+10;
-  if(!opts.static)for(const s of seats){const p=pos.get(s.id);if(!p||!s.pos)continue;const dx=Number(s.pos.dx)||0,dy=Number(s.pos.dy)||0;p.x+=dx;p.cx+=dx;p.y+=dy;p.manual=true;totalW=Math.max(totalW,p.x+W+40);totalH=Math.max(totalH,p.y+H+40);}
   return {pos,kids,W,H,HG,VG:VG2,PADT,baseLayer,maxDepth,totalW,totalH};
 }
 function orgDraw(seats,opts){
@@ -2186,7 +2186,7 @@ function orgDraw(seats,opts){
     g+=`<g class="seatg${dim?" dim":""}${q&&hit(s)?" hit":""}" data-openseat="${s.id}" data-x="${p.x}" data-y="${p.y}" ${opts.static?"":'style="cursor:pointer"'}><title>${esc(s.title)} · ${esc(s.code)} · ${esc(SSTAT[s.status]||"")} · ${esc(occ(s))}${s.scope?" · owns: "+esc(s.scope):""}</title>
       <rect class="box" x="${p.x}" y="${p.y}" width="${W}" height="${H}" rx="6" fill="${fill}" stroke="${s.status==="ACTING"||s.status==="FILLED"?"var(--espresso)":"var(--clay)"}" stroke-width="1.5" ${dashed?'stroke-dasharray="6 4"':""}/>
       <rect x="${p.x}" y="${p.y}" width="${W}" height="5" rx="2" fill="${uc}"/>
-      <g class="ph${dir&&s.status!=="VACANT"?" grab":""}" ${dir&&s.status!=="VACANT"?`data-person="${s.id}"`:""}><circle cx="${p.x+22}" cy="${p.y+30}" r="15" fill="${s.status==="VACANT"?"var(--line2)":uc}" opacity="${s.status==="VACANT"?".6":"1"}"/><text x="${p.x+22}" y="${p.y+34.5}" font-size="11" font-weight="700" text-anchor="middle" fill="#fff">${esc(s.status==="VACANT"?"?":initials(s.occupant))}</text>${dir&&s.status!=="VACANT"?`<title>Drag ${esc(s.occupant||"this person")} onto another seat to move them</title>`:""}</g>${p.manual&&dir?`<circle cx="${p.x+W-8}" cy="${p.y+12}" r="3" fill="var(--clay)"><title>Placed by hand — right-click › Reset position</title></circle>`:""}
+      <g class="ph${dir&&s.status!=="VACANT"?" grab":""}" ${dir&&s.status!=="VACANT"?`data-person="${s.id}"`:""}><circle cx="${p.x+22}" cy="${p.y+30}" r="15" fill="${s.status==="VACANT"?"var(--line2)":uc}" opacity="${s.status==="VACANT"?".6":"1"}"/><text x="${p.x+22}" y="${p.y+34.5}" font-size="11" font-weight="700" text-anchor="middle" fill="#fff">${esc(s.status==="VACANT"?"?":initials(s.occupant))}</text>${dir&&s.status!=="VACANT"?`<title>Drag ${esc(s.occupant||"this person")} onto another seat to move them</title>`:""}</g>
       <text x="${p.x+44}" y="${p.y+24}" class="seat-title" fill="var(--text)">${esc(tr(s.title,nt?24:28))}</text>
       <text x="${p.x+44}" y="${p.y+38}" class="seat-meta">${esc(tr(`${s.code||"no code"} · ${s.grade||"no grade"}${s.band?" · "+s.band:""}`,34))}</text>
       <text x="${p.x+44}" y="${p.y+50}" class="seat-meta">${esc(tr(s.sub?subLabel(s.sub):(s.track||"no track")+(S.orgView==="all"?" · "+(USHORT[s.unit]||""):""),34))}</text>
@@ -2203,8 +2203,8 @@ function orgSvg(seats){
   const {g,L}=orgDraw(seats);
   return `<div class="org-stage" id="orgStage" data-w="${L.totalW}" data-h="${L.totalH}">
     <svg width="100%" height="100%" role="img" aria-label="Organisation chart"><g id="orgG">${g}</g></svg>
-    <div class="ohud"><button class="btn sm" data-ozoom="-1" title="Zoom out">−</button><span class="small num" id="ozl">${Math.round(S.orgZoom*100)}%</span><button class="btn sm" data-ozoom="1" title="Zoom in">+</button><button class="btn sm" data-fit title="Fit chart to screen">Fit</button><button class="btn sm" data-expandall title="Expand every branch">Expand</button><button class="btn sm" data-fs title="Present full screen">⤢</button>${isDirector()&&seats.some(x=>x.pos)?`<button class="btn sm ghost" data-resetlayout title="Put every box back on the automatic layout">Reset layout</button>`:""}</div>
-    <div class="ohint">${isDirector()?"Boxes on one layer step down by rank: Manager › Supervisor › Officer › Assistant · drag a box anywhere to place it · drop it on a sibling to swap places, on another box to change its reporting line · drag the avatar circle onto another seat to move the person · right-click a box for reassign options · scroll to zoom":"Drag to pan · scroll to zoom · click a box to read the seat"}</div>
+    <div class="ohud"><button class="btn sm" data-ozoom="-1" title="Zoom out">−</button><span class="small num" id="ozl">${Math.round(S.orgZoom*100)}%</span><button class="btn sm" data-ozoom="1" title="Zoom in">+</button><button class="btn sm" data-fit title="Fit chart to screen">Fit</button><button class="btn sm" data-expandall title="Expand every branch">Expand</button><button class="btn sm" data-fs title="Present full screen">⤢</button></div>
+    <div class="ohint">${isDirector()?"Boxes organise themselves by rank: Manager › Supervisor › Officer › Assistant, stepping down within a layer · drag a box left or right along its row to reorder it among its peers · drop it on another box to change its reporting line · drag the avatar circle onto another seat to move the person · right-click a box for reassign options · scroll to zoom":"Drag to pan · scroll to zoom · click a box to read the seat"}</div>
   </div>`;
 }
 function wireProjectDnD(){
@@ -2242,7 +2242,7 @@ function wireOrg(){
   const end=e=>{if(!ptrs.has(e.pointerId))return;ptrs.delete(e.pointerId);if(ptrs.size<2)pinch=null;if(!drag)return;const d=drag;drag=null;
     if(d.person){d.person.classList.remove("lift");d.person.style.transform="";if(d.over)d.over.classList.remove("target");if(d.moved&&d.over)movePerson(d.person.dataset.person,d.over.dataset.openseat);}
     else if(d.seat){d.seat.classList.remove("lift");if(d.over)d.over.classList.remove("target");d.seat.style.transition="";d.seat.style.transform="";
-      if(d.moved){if(d.over){const A=S.seats.get(d.seat.dataset.openseat),B=S.seats.get(d.over.dataset.openseat);if(A&&B&&(A.reportsTo||"")===(B.reportsTo||""))swapOrder(A.id,B.id);else reparentSeat(d.seat.dataset.openseat,d.over.dataset.openseat);}else placeSeat(d.seat.dataset.openseat,(e.clientX-d.sx)/S.orgZoom,(e.clientY-d.sy)/S.orgZoom);}}
+      if(d.moved){if(d.over){const A=S.seats.get(d.seat.dataset.openseat),B=S.seats.get(d.over.dataset.openseat);if(A&&B&&(A.reportsTo||"")===(B.reportsTo||""))swapOrder(A.id,B.id);else reparentSeat(d.seat.dataset.openseat,d.over.dataset.openseat);}else{const r=st.getBoundingClientRect();reorderAt(d.seat.dataset.openseat,(e.clientX-r.left-S.orgPan.x)/S.orgZoom);}}}
     if(d.moved){st.dataset.suppress="1";setTimeout(()=>{delete st.dataset.suppress;},50);}};
   st.addEventListener("pointerup",end);st.addEventListener("pointercancel",end);
   st.addEventListener("click",e=>{if(st.dataset.suppress){e.stopPropagation();e.preventDefault();}},true);
@@ -2251,8 +2251,10 @@ function wireOrg(){
   st.addEventListener("contextmenu",e=>{const sg=e.target.closest(".seatg");if(!sg||!isDirector())return;e.preventDefault();seatMenu(sg.dataset.openseat,e.clientX,e.clientY);});
 }
 async function swapOrder(aId,bId){const a=S.seats.get(aId),b=S.seats.get(bId);if(!a||!b)return;const sibs=seatChildren(a.reportsTo||"");const na=JSON.parse(JSON.stringify(a)),nb=JSON.parse(JSON.stringify(b));let oa=sibs.indexOf(sibs.find(x=>x.id===aId))+1,ob=sibs.indexOf(sibs.find(x=>x.id===bId))+1;na.order=ob;nb.order=oa;delete na.pos;delete nb.pos;for(const x of sibs){if(x.id===aId||x.id===bId)continue;const nx=JSON.parse(JSON.stringify(x));nx.order=sibs.indexOf(x)+1;if(nx.order!==x.order){S.seats.set(nx.id,nx);if(S.db){try{await S.db.doc("seats/"+nx.id).set(nx);}catch(e){}}}}S.seats.set(na.id,na);if(S.db){try{await S.db.doc("seats/"+na.id).set(na);}catch(e){}}await saveSeat(nb);toast(`${a.title} ⇄ ${b.title}`);}
-async function placeSeat(id,ddx,ddy){const s=S.seats.get(id);if(!s)return;const ns=JSON.parse(JSON.stringify(s));const cur=ns.pos||{dx:0,dy:0};ns.pos={dx:Math.round((Number(cur.dx)||0)+ddx),dy:Math.round((Number(cur.dy)||0)+ddy)};if(Math.abs(ns.pos.dx)<4&&Math.abs(ns.pos.dy)<4)delete ns.pos;await saveSeat(ns);}
-async function resetLayout(ids){const list=(ids||[...S.seats.keys()]).map(i=>S.seats.get(i)).filter(x=>x&&x.pos);for(const s of list){const ns=JSON.parse(JSON.stringify(s));delete ns.pos;await saveSeat(ns);}if(list.length)toast(list.length===1?"Box back on the automatic layout":"Layout reset");}
+async function reorderAt(id,cx){const s=S.seats.get(id);if(!s)return;const peers=seatChildren(s.reportsTo||"").filter(x=>x.id!==id&&seatRank(x)===seatRank(s));if(!peers.length){render();toast(peers.length?"":"No peers of the same rank on this row — drop the box on another box to change its reporting line");return;}
+  const W=226;const xs=peers.map(x=>{const el=document.querySelector(`.seatg[data-openseat="${x.id}"]`);return {x,cx:el?(+el.dataset.x)+W/2:0};});let idx=xs.filter(o=>o.cx<cx).length;const seq=xs.map(o=>o.x);seq.splice(idx,0,s);
+  const all=seatChildren(s.reportsTo||"");const same=all.filter(x=>seatRank(x)===seatRank(s));const changed=[];let n=0;for(const x of all){const target=seatRank(x)===seatRank(s)?seq[n++]:x;const ord=all.indexOf(x)+1;if(target.order!==ord||target.pos){const nx=JSON.parse(JSON.stringify(target));nx.order=ord;delete nx.pos;changed.push(nx);}}
+  if(!changed.length){render();return;}for(const nx of changed){S.seats.set(nx.id,nx);if(S.db){try{await S.db.doc("seats/"+nx.id).set(nx);}catch(e){}}}render();toast(`${s.title} moved to position ${idx+1} of ${seq.length}`);}
 function personFields(s){return {status:s.status,occupant:s.occupant||"",substantive:s.substantive||"",actualGrade:s.actualGrade||""};}
 function movePerson(fromId,toId,mode){const a=S.seats.get(fromId),b=S.seats.get(toId);if(!a||!b||fromId===toId)return;if(a.status==="VACANT"){toast("That seat is vacant — nothing to move");return;}
   const who=a.occupant||"the person";const doIt=async swap=>{const na=JSON.parse(JSON.stringify(a)),nb=JSON.parse(JSON.stringify(b));const pa=personFields(a),pb=personFields(b);
@@ -2268,7 +2270,7 @@ function pickSeat(title,help,filter,cb){const list=seatsAll().filter(x=>!x.aboli
   const ov=$("#pick");const close=()=>ov.remove();ov.querySelector("[data-pickclose]").onclick=close;ov.addEventListener("click",e=>{if(e.target===ov)close();const c=e.target.closest("[data-pick]");if(c){close();cb(c.dataset.pick);}});
   const q=ov.querySelector("#pickq");q.oninput=()=>{const v=q.value.toLowerCase();ov.querySelectorAll("[data-pick]").forEach(el=>el.style.display=!v||el.dataset.txt.includes(v)?"":"none");};q.focus();}
 function seatMenu(id,x,y){const s=S.seats.get(id);if(!s)return;document.querySelectorAll(".ctxm").forEach(m=>m.remove());const occ0=s.status!=="VACANT";
-  const items=[["open","Open seat"],["line","Reports to… (change line)"]].concat(occ0?[["moveto","Move "+(s.occupant||"person")+" to…"],["swap","Swap "+(s.occupant||"person")+" with…"],["vacate","Vacate seat"]]:[["fill","Move someone here…"]]).concat([["rep","⧉ Replicate seat"]]).concat(s.pos?[["reset","Reset position"]]:[]);
+  const items=[["open","Open seat"],["line","Reports to… (change line)"]].concat(occ0?[["moveto","Move "+(s.occupant||"person")+" to…"],["swap","Swap "+(s.occupant||"person")+" with…"],["vacate","Vacate seat"]]:[["fill","Move someone here…"]]).concat([["rep","⧉ Replicate seat"]]);
   const m=document.createElement("div");m.className="ctxm";m.innerHTML=items.map(([k,l])=>`<div class="ctxi" data-ctx="${k}">${esc(l)}</div>`).join("");document.body.appendChild(m);
   const r=m.getBoundingClientRect();m.style.left=Math.min(x,innerWidth-r.width-8)+"px";m.style.top=Math.min(y,innerHeight-r.height-8)+"px";
   const close=()=>{m.remove();document.removeEventListener("pointerdown",away,true);};const away=e=>{if(!m.contains(e.target))close();};setTimeout(()=>document.addEventListener("pointerdown",away,true),0);
@@ -2279,8 +2281,7 @@ function seatMenu(id,x,y){const s=S.seats.get(id);if(!s)return;document.querySel
     else if(k==="swap")pickSeat("Swap with…","Choose the person to exchange seats with.",x=>x.id!==id&&x.status!=="VACANT",to=>movePerson(id,to));
     else if(k==="fill")pickSeat("Move someone here…",`Choose who takes "${s.title}". Their current seat becomes vacant.`,x=>x.id!==id&&x.status!=="VACANT",from=>movePerson(from,id));
     else if(k==="vacate")vacateSeat(id);
-    else if(k==="rep")replicateSeat(id);
-    else if(k==="reset")resetLayout([id]);});}
+    else if(k==="rep")replicateSeat(id);});}
 function reparentSeat(id,newParent){
   const s=S.seats.get(id),p=S.seats.get(newParent);if(!s||!p||s.reportsTo===newParent)return;
   if(descendants(id).has(newParent)){toast("A seat cannot report to one of its own reports.");return;}
@@ -2819,7 +2820,7 @@ async function clearSample(){
 /* ===================== events ===================== */
 document.addEventListener("contextmenu",e=>{const n=e.target.closest(".onode[data-openseat]");if(!n||!isDirector()||e.target.closest("input,textarea,select"))return;e.preventDefault();seatMenu(n.dataset.openseat,e.clientX,e.clientY);});
 document.addEventListener("click",e=>{
-  const el=e.target.closest("[data-tab],[data-open],[data-unit],[data-ack],[data-close],[data-save],[data-addsub],[data-sub-del],[data-addatt],[data-att-del],[data-addcmt],[data-cancel],[data-flag],[data-new],[data-done],[data-sort],[data-orgmode],[data-orgactual],[data-zoom],[data-pw],[data-logout],[data-acc],[data-nameteam],[data-tmsave],[data-pqadd],[data-renamesub],[data-bedit],[data-besave],[data-bremove],[data-badd],[data-bsave],[data-bcancel],[data-bup],[data-bdown],[data-newseatunit],[data-newseatsub],[data-newsub],[data-structure],[data-savestruct],[data-st-add],[data-st-del],[data-collapse],[data-ozoom],[data-fit],[data-expandall],[data-fs],[data-quickstart],[data-newseat],[data-openseat],[data-meta],[data-reissue],[data-saveseat],[data-abolish],[data-replicate],[data-resetlayout],[data-adddot],[data-dot-del],[data-savemeta],[data-newtaskseat],[data-st],[data-imp],[data-rep],[data-evview],[data-calnav],[data-calday],[data-newevent],[data-openevent],[data-evtab],[data-saveevent],[data-ck-add],[data-ck-del],[data-ck-savestd],[data-ck-reload],[data-at-add],[data-at-del],[data-ev-addcmt],[data-ev-report],[data-evtemplates],[data-tp-add],[data-tp-del],[data-tp-save],[data-tp-reset],[data-pcatf],[data-pscope],[data-viewmode],[data-invcsv],[data-mkcsv],[data-mkview],[data-userlog],[data-exitviewas],[data-rtemplate],[data-collrows],[data-speriod],[data-snav],[data-bdview],[data-invchip],[data-invf],[data-isort],[data-usort],[data-pupd],[data-petsvg],[data-salescsv],[data-followup],[data-accept],[data-decline],[data-inboxseen],[data-mergego],[data-reqrev],[data-revok],[data-revno],[data-dview],[data-dnav],[data-dsheet],[data-newappt],[data-openappt],[data-dayadd],[data-dayopen],[data-saveappt],[data-ap-addwith],[data-ap-delwith],[data-ap-addprep],[data-ap-delprep],[data-ap-delete],[data-editland],[data-saveland],[data-openproject],[data-newproject],[data-ptab],[data-back],[data-editproject],[data-rows],[data-newissue],[data-openissue],[data-saveproject],[data-saveissue],[data-addteam],[data-tm-del],[data-addlink],[data-lk-del],[data-archiveproject],[data-radd],[data-rdel],[data-saverows],[data-addupd],[data-taskfromissue],[data-newtaskproject],[data-ifcat],#newBtn,#clearSample,#clearF,#csv,#repPrev,#repNext,#repCopy");
+  const el=e.target.closest("[data-tab],[data-open],[data-unit],[data-ack],[data-close],[data-save],[data-addsub],[data-sub-del],[data-addatt],[data-att-del],[data-addcmt],[data-cancel],[data-flag],[data-new],[data-done],[data-sort],[data-orgmode],[data-orgactual],[data-zoom],[data-pw],[data-logout],[data-acc],[data-nameteam],[data-tmsave],[data-pqadd],[data-renamesub],[data-bedit],[data-besave],[data-bremove],[data-badd],[data-bsave],[data-bcancel],[data-bup],[data-bdown],[data-newseatunit],[data-newseatsub],[data-newsub],[data-structure],[data-savestruct],[data-st-add],[data-st-del],[data-collapse],[data-ozoom],[data-fit],[data-expandall],[data-fs],[data-quickstart],[data-newseat],[data-openseat],[data-meta],[data-reissue],[data-saveseat],[data-abolish],[data-replicate],[data-adddot],[data-dot-del],[data-savemeta],[data-newtaskseat],[data-st],[data-imp],[data-rep],[data-evview],[data-calnav],[data-calday],[data-newevent],[data-openevent],[data-evtab],[data-saveevent],[data-ck-add],[data-ck-del],[data-ck-savestd],[data-ck-reload],[data-at-add],[data-at-del],[data-ev-addcmt],[data-ev-report],[data-evtemplates],[data-tp-add],[data-tp-del],[data-tp-save],[data-tp-reset],[data-pcatf],[data-pscope],[data-viewmode],[data-invcsv],[data-mkcsv],[data-mkview],[data-userlog],[data-exitviewas],[data-rtemplate],[data-collrows],[data-speriod],[data-snav],[data-bdview],[data-invchip],[data-invf],[data-isort],[data-usort],[data-pupd],[data-petsvg],[data-salescsv],[data-followup],[data-accept],[data-decline],[data-inboxseen],[data-mergego],[data-reqrev],[data-revok],[data-revno],[data-dview],[data-dnav],[data-dsheet],[data-newappt],[data-openappt],[data-dayadd],[data-dayopen],[data-saveappt],[data-ap-addwith],[data-ap-delwith],[data-ap-addprep],[data-ap-delprep],[data-ap-delete],[data-editland],[data-saveland],[data-openproject],[data-newproject],[data-ptab],[data-back],[data-editproject],[data-rows],[data-newissue],[data-openissue],[data-saveproject],[data-saveissue],[data-addteam],[data-tm-del],[data-addlink],[data-lk-del],[data-archiveproject],[data-radd],[data-rdel],[data-saverows],[data-addupd],[data-taskfromissue],[data-newtaskproject],[data-ifcat],#newBtn,#clearSample,#clearF,#csv,#repPrev,#repNext,#repCopy");
   if(!el)return;
   const d0=el.dataset;
   if(d0.orgmode){S.orgMode=d0.orgmode;S.orgFit=true;render();return;}
@@ -2859,7 +2860,6 @@ document.addEventListener("click",e=>{
     if(d0.close!==undefined){ST=null;closeModal();return;}
   }
   if(d0.newseatunit!==undefined){if(!isDirector())return;closeModal();M=SM=null;const head=seatsAll().find(x=>x.unit===d0.newseatunit&&x.title.toLowerCase().includes("head"));openSeat(null,head?head.id:"");if(SM){SM.s.unit=d0.newseatunit;drawSeat();}return;}
-  if(d0.resetlayout!==undefined){if(isDirector())resetLayout();return;}
   if(d0.replicate!==undefined){if(!isDirector())return;closeModal();M=SM=null;replicateSeat(d0.replicate);return;}
   if(d0.newseat!==undefined){if(!isDirector())return;if(SM){readSeat();}closeModal();M=null;SM=null;openSeat(null,d0.newseat||"");return;}
   if(d0.meta!==undefined){openMeta(false);return;}
