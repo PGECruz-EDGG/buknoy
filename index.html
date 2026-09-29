@@ -1511,7 +1511,7 @@ function vProjectPage(pj){
 let PM=null,RM=null,IMod=null;
 function blankLand(){return {titleNo:"",titleName:"",titleStatus:"",taxDec:"",areaSqm:"",purchaseValue:"",purchaseDate:"",acquisitionMode:"",zoning:"",conversion:"Not required",conversionNote:"",rptYear:"",rptLastPaid:"",rptAmount:"",rptStatus:"",encumbrances:"",survey:"",access:"",remarks:""};}
 function blankProject(){return {id:uid("p"),name:"",code:"",category:"active",landTag:"",land:blankLand(),risks:[],generalComments:"",type:PTYPES[0],status:"Planning",location:"",description:"",start:todayStr(),target:"",landArea:"",leadSeat:"",leadName:"",leadDept:"",team:[],phases:[],overallPct:0,inventory:[],priceList:[],priceEffective:"",links:[],log:[],sample:false,archived:false,created:nowISO(),createdBy:role().label};}
-function openProject(id){const pj=id?S.projects.get(id):null;if(!id&&!canCreateProject()){toast("New projects are opened by Project Development or Business Development");return;}if(id&&!pj)return;PM={orig:pj?JSON.parse(JSON.stringify(pj)):null,p:pj?JSON.parse(JSON.stringify(pj)):blankProject(),isNew:!pj,err:""};PM.p.team=PM.p.team||[];PM.p.links=PM.p.links||[];drawProject();}
+function openProject(id){const pj=id?S.projects.get(id):null;if(!id&&!canCreateProject()){toast("New projects are opened by Project Development or Business Development");return;}if(id&&!pj)return;PM={orig:pj?JSON.parse(JSON.stringify(pj)):null,p:pj?JSON.parse(JSON.stringify(pj)):blankProject(),isNew:!pj,err:""};PM.p.team=PM.p.team||[];PM.p.links=PM.p.links||[];if(PM.orig){PM.orig.team=PM.orig.team||[];PM.orig.links=PM.orig.links||[];}drawProject();}
 function drawProject(){
   const p=PM.p;const opt=(arr,v,blank)=>(blank?`<option value="">${blank}</option>`:"")+arr.map(o=>{const[val,l]=Array.isArray(o)?o:[o,o];return `<option value="${esc(val)}" ${val===v?"selected":""}>${esc(l)}</option>`;}).join("");
   const seatOpts=seatsAll().filter(x=>seatPerson(x)).sort((a,b)=>UNITS.indexOf(a.unit)-UNITS.indexOf(b.unit)||seatLayer(a)-seatLayer(b)).map(x=>[x.id,`${USHORT[x.unit]} · ${seatPerson(x)} — ${x.title}`]);
@@ -1548,10 +1548,12 @@ function readProject(){const p=PM.p,g=id=>{const el=document.getElementById(id);
   if(document.querySelector("[data-mod]")){p.modules=Object.assign({},p.modules||{});document.querySelectorAll("[data-mod]").forEach(el=>{p.modules[el.dataset.mod]=el.checked;});}
   document.querySelectorAll("[data-tm-seat]").forEach(el=>{p.team[+el.dataset.tmSeat].seatId=el.value;});document.querySelectorAll("[data-tm-name]").forEach(el=>{p.team[+el.dataset.tmName].name=el.value.trim();});document.querySelectorAll("[data-tm-dept]").forEach(el=>{p.team[+el.dataset.tmDept].dept=el.value.trim();});document.querySelectorAll("[data-tm-role]").forEach(el=>{p.team[+el.dataset.tmRole].role=el.value.trim();});
   document.querySelectorAll("[data-lk-l]").forEach(el=>{p.links[+el.dataset.lkL].label=el.value;});document.querySelectorAll("[data-lk-u]").forEach(el=>{p.links[+el.dataset.lkU].url=el.value.trim();});}
-async function saveProjectModal(){readProject();const p=PM.p,o=PM.orig;if(!p.name){PM.err="Project name is required.";drawProject();return;}
-  if(!p.leadSeat&&!p.leadName){PM.err="Name the project lead — from the org chart or another department.";drawProject();return;}
+async function saveProjectModal(){try{await saveProjectModal0();}catch(e){console.error(e);toast("Could not save the project: "+(e.message||e)+" — please send this message to the Director");}}
+function projErr(msg){PM.err=msg;drawProject();toast(msg);setTimeout(()=>{const d=document.querySelector("#ov .db");if(d)d.scrollTop=0;},0);}
+async function saveProjectModal0(){readProject();const p=PM.p,o=PM.orig||{};p.team=p.team||[];p.links=p.links||[];if(!p.name){projErr("Project name is required.");return;}
+  if(!p.leadSeat&&!p.leadName){projErr("Name the project lead — from the org chart or another department.");return;}
   p.team=p.team.filter(m=>m.seatId||m.name);p.links=p.links.filter(l=>l.url);p.log=p.log||[];
-  if(PM.isNew)logEntry(p,"create","Project created");else{for(const [k,l] of [["status","Status"],["target","Target completion"],["leadName","Lead"],["name","Name"],["type","Type"]])if((o[k]||"")!==(p[k]||""))logEntry(p,"field",`${l} "${o[k]||"—"}" → "${p[k]||"—"}"`);if((o.team||[]).length!==p.team.length)logEntry(p,"team",`Team ${o.team.length} → ${p.team.length} members`);}
+  if(PM.isNew)logEntry(p,"create","Project created");else{for(const [k,l] of [["status","Status"],["target","Target completion"],["leadName","Lead"],["name","Name"],["type","Type"]])if((o[k]||"")!==(p[k]||""))logEntry(p,"field",`${l} "${o[k]||"—"}" → "${p[k]||"—"}"`);if((o.team||[]).length!==p.team.length)logEntry(p,"team",`Team ${(o.team||[]).length} → ${p.team.length} members`);}
   closeModal();PM=null;S.projectId=p.id;S.tab="projects";await saveProject(p);toast(PM?"":"Project saved");}
 /* land & title editor */
 let LM=null;
@@ -1864,7 +1866,7 @@ function vSettings(){
   <div class="panel"><div class="ph"><h2>Display</h2></div><div class="pb"><div class="row"><button class="btn sm" data-st="theme">Toggle dark / light</button><button class="btn sm" data-st="fullscreen">⤢ Full screen</button><button class="btn sm" data-st="switchrole">Switch role</button></div><p class="small muted" style="margin:10px 0 0">Version ${APP_VERSION} · EDGG Monitoring · WRLD Capital Holdings</p></div></div>
   </div></div>`;
 }
-const APP_VERSION="4.9.1 (website)";
+const APP_VERSION="4.9.2 (website)";
 async function settingsAction(a){
   if(a==="savecfg"){let cfg;try{const t=$("#st_cfg").value.trim().replace(/^const\s+firebaseConfig\s*=\s*/,"").replace(/;\s*$/,"");cfg=Function("return ("+t+")")();}catch(e){toast("That is not a valid config object.");return;}if(!cfg||!cfg.databaseURL){toast("The config needs a databaseURL — enable Realtime Database first.");return;}
     try{localStorage.setItem(CFG_KEY,JSON.stringify(cfg));localStorage.setItem(WS_KEY,$("#st_ws").value.trim()||"edgg");}catch(e){}toast("Saved — reloading to connect");setTimeout(()=>location.reload(),600);return;}
