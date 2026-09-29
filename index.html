@@ -677,7 +677,8 @@ function isBD(unit){return /business\s*dev|^bd$/i.test(unit||"")||/^bd$/i.test(U
 function canCreateProject(){const r=role();if(!r)return false;if(isDirector())return true;const ok=u=>isPD(u)||isBD(u);if(ok(r.unit))return true;return [r.seat].concat(r.covered||[]).some(x=>x&&ok(x.unit));} // Project Development and Business Development (and the Director) open new projects
 function isMember(){const r=role();return !!r&&ACCOUNTS&&r.level==="member";}
 function ownsTask(t){const r=role();if(!r)return false;if(r.covered&&r.covered.some(c=>c.id===t.ownerSeat))return true;return (r.seatId&&t.ownerSeat===r.seatId)||(r.name&&t.owner&&t.owner.trim().toLowerCase()===r.name.trim().toLowerCase())||t.createdBy===r.label;}
-function canEdit(t){const r=role();if(!r)return false;if(isDirector())return true;if(isMine(t))return true;if(taskInCover(t))return true;if(t.assignStatus==="pending"&&(t.assignedBy===r.label||t.createdBy===r.label))return true;if(!t.owner&&!t.ownerSeat&&t.createdBy===r.label)return true;return false;} // owners edit their own tasks; dates still need the Director
+function isCreator(t){const r=role();if(!r||!t)return false;if(t.createdBy===r.label||t.assignedBy===r.label)return true;if(r.seatId&&(t.createdBySeat===r.seatId||t.assignedBySeat===r.seatId))return true;const nm=(r.name||"").trim().toLowerCase();const who=x=>String(x||"").split(" — ")[0].trim().toLowerCase();return !!nm&&(who(t.createdBy)===nm||who(t.assignedBy)===nm);}
+function canEdit(t){const r=role();if(!r)return false;if(isDirector())return true;if(isMine(t))return true;if(taskInCover(t))return true;if(isCreator(t)&&t.assignStatus!=="declined")return true;if(!t.owner&&!t.ownerSeat&&t.createdBy===r.label)return true;return false;} // owners edit their own tasks; dates still need the Director
 function dateAuth(){return isDirector();}
 function canCreateIn(unit){const r=role();return !!r;} // any signed-in person may raise a task; tasks for other people wait for their acceptance unless the Director assigned them
 function isMine(t){const r=role();if(!r)return false;return (r.seatId&&t.ownerSeat===r.seatId)||(r.name&&t.owner&&t.owner.trim().toLowerCase()===r.name.trim().toLowerCase())||(r.covered||[]).some(c=>c.id===t.ownerSeat);}
@@ -1889,7 +1890,7 @@ function vSettings(){
   <div class="panel"><div class="ph"><h2>Display</h2></div><div class="pb"><div class="row"><button class="btn sm" data-st="theme">🎨 Appearance — colours, mode, text size</button><button class="btn sm" data-st="fullscreen">⤢ Full screen</button><button class="btn sm" data-st="switchrole">Switch role</button></div><p class="small muted" style="margin:10px 0 0">Version ${APP_VERSION} · EDGG Monitoring · WRLD Capital Holdings</p></div></div>
   </div></div>`;
 }
-const APP_VERSION="4.17.1 (website)";
+const APP_VERSION="4.18 (website)";
 async function settingsAction(a){
   if(a==="savecfg"){let cfg;try{const t=$("#st_cfg").value.trim().replace(/^const\s+firebaseConfig\s*=\s*/,"").replace(/;\s*$/,"");cfg=Function("return ("+t+")")();}catch(e){toast("That is not a valid config object.");return;}if(!cfg||!cfg.databaseURL){toast("The config needs a databaseURL — enable Realtime Database first.");return;}
     try{localStorage.setItem(CFG_KEY,JSON.stringify(cfg));localStorage.setItem(WS_KEY,$("#st_ws").value.trim()||"edgg");}catch(e){}toast("Saved — reloading to connect");setTimeout(()=>location.reload(),600);return;}
@@ -3167,7 +3168,7 @@ async function saveModal(){
     if(!M.isNew)logEntry(t,"status",`Status ${SNAME[from]} → ${SNAME[t.status]}${t.status==="BL"?" — "+t.blockReason:t.status==="WO"?" — waiting on "+t.waitingOn:""}`,{from,to:t.status});
   }
   t.subtasks=t.subtasks.filter(s=>s.title.trim());t.attachments=t.attachments.filter(a=>a.url||a.label);
-  if(M.isNew){logEntry(t,"create","Task created");const r=role();const toSomeoneElse=!!(t.ownerSeat||t.owner)&&!isMine(t);if(toSomeoneElse){t.assignedBy=r.label;t.assignedBySeat=r.seatId||"";t.assignedAt=nowISO();if(authOver(t)){t.assignStatus="accepted";logEntry(t,"assign",`Assigned by ${isDirector()?"the Director":r.label+" (line manager)"} to ${t.owner||"seat"} — accepted automatically`);}else{t.assignStatus="pending";logEntry(t,"assign",`Assigned by ${r.label} to ${t.owner||"seat"} — awaiting acceptance`);}}}
+  if(M.isNew){logEntry(t,"create","Task created");const r=role();t.createdBySeat=t.createdBySeat||r.seatId||"";const toSomeoneElse=!!(t.ownerSeat||t.owner)&&!isMine(t);if(toSomeoneElse){t.assignedBy=r.label;t.assignedBySeat=r.seatId||"";t.assignedAt=nowISO();if(authOver(t)){t.assignStatus="accepted";logEntry(t,"assign",`Assigned by ${isDirector()?"the Director":r.label+" (line manager)"} to ${t.owner||"seat"} — accepted automatically`);}else{t.assignStatus="pending";logEntry(t,"assign",`Assigned by ${r.label} to ${t.owner||"seat"} — awaiting acceptance`);}}}
   else if(o&&((o.ownerSeat||"")!==(t.ownerSeat||"")||(o.owner||"").trim().toLowerCase()!==(t.owner||"").trim().toLowerCase())&&!isMine(t)){const r=role();t.assignedBy=r.label;t.assignedBySeat=r.seatId||"";t.assignedAt=nowISO();t.assignStatus=authOver(t)?"accepted":"pending";t.declineNote="";logEntry(t,"assign",authOver(t)?`Reassigned by ${isDirector()?"the Director":r.label} to ${t.owner||"seat"}`:`Reassigned by ${r.label} to ${t.owner||"seat"} — awaiting acceptance`);}
   else{
     for(const [k,l] of [["due","Due date"],["start","Start date"],["completed","Completed date"]])if((o[k]||"")!==(t[k]||""))logEntry(t,"date",`${l} ${fmtD(o[k])} → ${fmtD(t[k])}`);
