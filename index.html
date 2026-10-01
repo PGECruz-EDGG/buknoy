@@ -943,8 +943,13 @@ async function saveTask(t){
   t.updated=nowISO();t.updatedBy=role()?role().label:"?";
   S.tasks.set(t.id,t);
   if(S.db){try{await S.db.doc("tasks/"+t.id).set(t);}catch(e){toast("Save failed: "+(e.message||e.code||"unknown"));}}
+  try{await syncParentSub(t);}catch(e){}
   render();
 }
+/* v4.50 — when an assigned sub-task (its own task) is closed or re-opened, tick/untick it on the parent */
+async function syncParentSub(c){if(!c||!c.parentTaskId)return;const p=S.tasks.get(c.parentTaskId);if(!p)return;const sb=(p.subtasks||[]).find(s=>s.linkedTaskId===c.id||(c.parentSubId&&s.id===c.parentSubId));if(!sb)return;const done=c.status==="DN";if(!!sb.done===done)return;
+ const np=JSON.parse(JSON.stringify(p));const s2=np.subtasks.find(s=>s.id===sb.id);s2.done=done;if(done){s2.doneAt=c.completed||todayStr();s2.doneBy=c.owner||"";}logEntry(np,"sub",done?`Sub-task “${s2.title}” completed by ${c.owner||"the assignee"} (their own task)`:`Sub-task “${s2.title}” re-opened by ${c.owner||"the assignee"}`);
+ np.updated=nowISO();S.tasks.set(np.id,np);if(S.db){try{await S.db.doc("tasks/"+np.id).set(np);}catch(e){}}}
 function nextSeatCode(code){const m=String(code||"").trim().match(/^(.*?)(\d+)([A-Za-z]*)$/);const taken=new Set([...S.seats.values()].map(x=>String(x.code||"").trim().toUpperCase()));if(!m){let c=code?code+"-2":"";let k=2;while(c&&taken.has(c.toUpperCase()))c=code+"-"+(++k);return c;}let n=parseInt(m[2],10);const w=m[2].length;let c;do{n++;c=m[1]+String(n).padStart(w,"0")+m[3];}while(taken.has(c.toUpperCase()));return c;}
 async function replicateSeat(id){const src=S.seats.get(id);if(!src||!inCover(id))return;const s=blankSeat(src.reportsTo||"");const code=nextSeatCode(src.code);
   Object.assign(s,{title:src.title,code,grade:src.grade||"",band:src.band||"",track:src.track||s.track,unit:src.unit,sub:src.sub||"",scope:src.scope||"",jpdf:JSON.parse(JSON.stringify(src.jpdf||s.jpdf)),order:(Number(src.order)||0)+1,status:"VACANT",occupant:"",substantive:"",actualGrade:"",dotted:[],sample:false});
@@ -994,13 +999,16 @@ async function mergeTasks(keepId,dropId){const keep=S.tasks.get(keepId),drop=S.t
 function logEntry(t,kind,text,extra){t.log=t.log||[];t.log.push(Object.assign({ts:nowISO(),role:role()?role().label:"?",kind,text},extra||{}));if(t.log.length>120)t.log=t.log.slice(-120);}
 
 /* ===================== rules ===================== */
-function openSubtasks(t){return (t.subtasks||[]).filter(s=>!s.done);}
+/* v4.50 — an ASSIGNED sub-task is an independent task: it never blocks the parent, and the assignee closes it on their own */
+function subLinked(s){return !!(s&&s.linkedTaskId&&S.tasks.get(s.linkedTaskId));}
+function openSubtasks(t){return (t.subtasks||[]).filter(s=>!subLinked(s)&&!subDone(s));}
+function openAssignedSubs(t){return (t.subtasks||[]).filter(s=>subLinked(s)&&OPEN(S.tasks.get(s.linkedTaskId).status));}
 function openDeps(t){return (t.deps||[]).map(id=>S.tasks.get(id)).filter(d=>d&&OPEN(d.status));}
 function checkStatusChange(t,to,extra){
   extra=extra||{};
   if(to==="DN"){
     const os=openSubtasks(t),od=openDeps(t);
-    if(os.length)return {ok:false,msg:`Cannot mark Done: ${os.length} open sub-task${os.length>1?"s":""} (${os.slice(0,2).map(s=>s.title).join("; ")}${os.length>2?"…":""}). Close them first.`};
+    if(os.length)return {ok:false,msg:`Cannot mark Done: ${os.length} unticked sub-task${os.length>1?"s":""} on this task’s own checklist (${os.slice(0,2).map(s=>s.title).join("; ")}${os.length>2?"…":""}). Tick ${os.length>1?"them":"it"}, remove ${os.length>1?"them":"it"}, or use → Assign to make ${os.length>1?"them":"it"} someone else’s task. Assigned sub-tasks never block closing.`};
     if(od.length)return {ok:false,msg:`Cannot mark Done: blocked by open dependenc${od.length>1?"ies":"y"} (${od.map(d=>d.title).join("; ")}).`};
   }
   if(to==="BL"&&!(extra.reason||"").trim())return {ok:false,msg:"Blocked needs a reason.",need:"reason"};
@@ -1019,7 +1027,7 @@ async function applyStatus(t,to,extra){
   nt.status=to;
   if(to==="BL")nt.blockReason=extra.reason;
   if(to==="WO")nt.waitingOn=extra.waitingOn;
-  if(to==="DN"){nt.completed=todayStr();nt.closedBy=(role()||{}).label||"";nt.closedAt=nowISO();}else if(from==="DN"){nt.completed="";nt.closedBy="";nt.closedAt="";}
+  if(to==="DN"){nt.completed=todayStr();nt.closedBy=(role()||{}).label||"";nt.closedAt=nowISO();const oa=openAssignedSubs(nt);if(oa.length)logEntry(nt,"sub",`Closed while ${oa.length} assigned sub-task${oa.length>1?"s are":" is"} still open with ${oa.map(s=>S.tasks.get(s.linkedTaskId).owner).join(", ")} — they continue as independent tasks`);}else if(from==="DN"){nt.completed="";nt.closedBy="";nt.closedAt="";}
   logEntry(nt,"status",`Status ${SNAME[from]} → ${SNAME[to]}${to==="BL"?" — "+extra.reason:to==="WO"?" — waiting on "+extra.waitingOn:""}`,{from,to});
   await saveTask(nt);if(to==="DN")await issueTaskDone(nt);if(nt.eventId)await syncEventFromTask(nt);
   if(to==="DN"&&nt.tier==="Routine"&&nt.recurrence&&nt.due){
@@ -2056,7 +2064,7 @@ function vSettings(){
   <div class="panel"><div class="ph"><h2>Display</h2></div><div class="pb"><div class="row"><button class="btn sm" data-st="theme">🎨 Appearance — colours, mode, text size</button><button class="btn sm" data-st="fullscreen">⤢ Full screen</button><button class="btn sm" data-st="switchrole">Switch role</button></div><p class="small muted" style="margin:10px 0 0">Version ${APP_VERSION} · EDGG Monitoring · WRLD Capital Holdings</p></div></div>
   </div></div>`;
 }
-const APP_VERSION="4.49 (website)";
+const APP_VERSION="4.50 (website)";
 async function settingsAction(a){
   if(a==="savecfg"){let cfg;try{const t=$("#st_cfg").value.trim().replace(/^const\s+firebaseConfig\s*=\s*/,"").replace(/;\s*$/,"");cfg=Function("return ("+t+")")();}catch(e){toast("That is not a valid config object.");return;}if(!cfg||!cfg.databaseURL){toast("The config needs a databaseURL — enable Realtime Database first.");return;}
     try{localStorage.setItem(CFG_KEY,JSON.stringify(cfg));localStorage.setItem(WS_KEY,$("#st_ws").value.trim()||"edgg");}catch(e){}toast("Saved — reloading to connect");setTimeout(()=>location.reload(),600);return;}
@@ -4453,7 +4461,7 @@ function drawModal(){setTimeout(fillThumbs,0);
       ${t.issueId&&S.issues.get(t.issueId)?`<div class="field" style="grid-column:1/-1"><label>Linked project issue</label><div class="tl">${issueRow(S.issues.get(t.issueId))}</div></div>`:""}
     </div>
     <div class="sub"><h3>Sub-tasks <span class="small muted num">${t.subtasks.filter(subDone).length}/${t.subtasks.length} done</span><span class="spacer"></span><button class="btn sm" data-addsub type="button">+ Add</button></h3>
-      ${t.subtasks.map((s,i)=>{const lk=s.linkedTaskId&&S.tasks.get(s.linkedTaskId);return `<div class="subrow"><input type="checkbox" data-sub-done="${i}" ${subDone(s)?"checked":""} ${lk?'disabled title="Ticks itself when the assigned task is Done"':""} aria-label="done"><input type="text" data-sub-title="${i}" value="${esc(s.title)}" placeholder="Sub-task"><input type="date" data-sub-due="${i}" value="${s.due||""}" title="Milestone date (optional)">${lk?subLinkPill(s):`<button class="btn sm ghost" data-sub-assign="${i}" type="button" title="Send this sub-task to someone as their own task — they accept it, and it ticks here when they finish">→ Assign</button>`}<button class="del" data-sub-del="${i}" type="button" aria-label="Remove">×</button></div>`;}).join("")||`<div class="small muted">No sub-tasks. Workstreams usually carry several; dated ones show as milestones on the Timeline.</div>`}</div>
+      ${t.subtasks.map((s,i)=>{const lk=s.linkedTaskId&&S.tasks.get(s.linkedTaskId);return `<div class="subrow"><input type="checkbox" data-sub-done="${i}" ${subDone(s)?"checked":""} ${lk?'disabled title="Ticks itself when the assigned task is Done"':""} aria-label="done"><input type="text" data-sub-title="${i}" value="${esc(s.title)}" placeholder="Sub-task"><input type="date" data-sub-due="${i}" value="${s.due||""}" title="Milestone date (optional)">${lk?subLinkPill(s):`<button class="btn sm ghost" data-sub-assign="${i}" type="button" title="Send this sub-task to someone as their own, independent task — they close it on their own; it ticks here when they finish and never blocks this task">→ Assign</button>`}<button class="del" data-sub-del="${i}" type="button" aria-label="Remove">×</button></div>`;}).join("")||`<div class="small muted">No sub-tasks. Workstreams usually carry several; dated ones show as milestones on the Timeline.</div>`}</div>
     <div class="sub"><h3>Dependencies <span class="small muted">this task cannot be Done while any of these is open</span></h3><div class="deps">${others.map(o=>`<label><input type="checkbox" data-dep="${o.id}" ${t.deps.includes(o.id)?"checked":""}> ${esc(o.title)} <span class="muted small">· ${USHORT[o.unit]} · ${SNAME[o.status]}</span></label>`).join("")||`<span class="muted small">No other tasks.</span>`}</div></div>
     <div class="sub"><h3>Attachments <span class="small muted">links to the shared drive</span><span class="spacer"></span><button class="btn sm" data-addatt type="button">+ Add link</button></h3>
       ${t.attachments.map((a,i)=>`<div class="attrow"><input type="text" data-att-l="${i}" value="${esc(a.label)}" placeholder="Label"><input type="url" data-att-u="${i}" value="${esc(a.url)}" placeholder="https://…"><button class="del" data-att-del="${i}" type="button" aria-label="Remove">×</button></div>`).join("")}
@@ -4506,6 +4514,7 @@ async function saveModal(){
     const chk=checkStatusChange(t,t.status,{reason:t.blockReason,waitingOn:t.waitingOn});
     if(!chk.ok){M.err=chk.msg;drawModal();return;}
     if(t.status==="DN"&&!t.completed)t.completed=todayStr();
+    if(t.status==="DN"&&from!=="DN"){const oa=openAssignedSubs(t);if(oa.length)logEntry(t,"sub",`Closed while ${oa.length} assigned sub-task${oa.length>1?"s are":" is"} still open with ${oa.map(s=>S.tasks.get(s.linkedTaskId).owner).join(", ")} — they continue as independent tasks`);}
     if(t.status!=="DN"&&from==="DN")t.completed="";
     if(!M.isNew)logEntry(t,"status",`Status ${SNAME[from]} → ${SNAME[t.status]}${t.status==="BL"?" — "+t.blockReason:t.status==="WO"?" — waiting on "+t.waitingOn:""}`,{from,to:t.status});
   }
@@ -4857,7 +4866,7 @@ document.addEventListener("click",e=>{
   if(d.attdel!==undefined&&document.getElementById("cmtAtt")){TATT.splice(+d.attdel,1);document.getElementById("cmtAtt").innerHTML=attChips(TATT,true);return;}
   if(d.subDel!==undefined){readForm();M.t.subtasks.splice(+d.subDel,1);drawModal();return;}
   if(d.subAssign!==undefined){readForm();const i=+d.subAssign;const sb=M.t.subtasks[i];if(!sb||!sb.title.trim()){toast("Type the sub-task first");return;}if(!M.t.title){toast("Give the main task a title first");return;}
-    pickSeat("Assign “"+trunc(sb.title,40)+"” to…","It becomes their own task (linked to this one). They accept or decline it; when they mark it Done, this sub-task ticks itself.",x=>x.status!=="VACANT"&&x.id!==M.t.ownerSeat,sid=>assignSubtask(i,sid));return;}
+    pickSeat("Assign “"+trunc(sb.title,40)+"” to…","It becomes their own independent task (linked to this one) with its own due date. They accept, work and close it on their own; when they mark it Done, this sub-task ticks itself. It never blocks closing this task.",x=>x.status!=="VACANT"&&x.id!==M.t.ownerSeat,sid=>assignSubtask(i,sid));return;}
   if(d.addatt!==undefined){readForm();M.t.attachments.push({label:"",url:""});drawModal();return;}
   if(d.attDel!==undefined){readForm();M.t.attachments.splice(+d.attDel,1);drawModal();return;}
   if(d.addcmt!==undefined){const v=$("#f_cmt").value.trim();const kind=($("#f_cmtk")||{}).value||"Comment";if(!v&&!TATT.length){toast("Write something or attach a file first");return;}if(!involvedIn(M.t)){toast("Only the people involved in this task or its project can post here");return;}
