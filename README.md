@@ -1,4 +1,4 @@
-# EDGG Task Monitor — website edition
+# EDGG Monitoring — website edition
 
 A single-file web app for the Enterprise Development and Growth Group of WRLD Capital Holdings: task register, Kanban, timeline, routines, unit pages, projects (team, completion, inventory, price list, categorised issues), org chart with JPDFs, weekly MANCOM report, member-file import and downloadable progress reports.
 
