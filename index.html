@@ -2137,7 +2137,7 @@ function vSettings(){
   <div class="panel"><div class="ph"><h2>Display</h2></div><div class="pb"><div class="row"><button class="btn sm" data-st="theme">🎨 Appearance — colours, mode, text size</button><button class="btn sm" data-st="fullscreen">⤢ Full screen</button><button class="btn sm" data-st="switchrole">Switch role</button></div><p class="small muted" style="margin:10px 0 0">Version ${APP_VERSION} · EDGG Monitoring · WRLD Capital Holdings</p></div></div>
   </div></div>`;
 }
-const APP_VERSION="4.58 (website)";
+const APP_VERSION="4.59 (website)";
 async function settingsAction(a){
   if(a==="savecfg"){let cfg;try{const t=$("#st_cfg").value.trim().replace(/^const\s+firebaseConfig\s*=\s*/,"").replace(/;\s*$/,"");cfg=Function("return ("+t+")")();}catch(e){toast("That is not a valid config object.");return;}if(!cfg||!cfg.databaseURL){toast("The config needs a databaseURL — enable Realtime Database first.");return;}
     try{localStorage.setItem(CFG_KEY,JSON.stringify(cfg));localStorage.setItem(WS_KEY,$("#st_ws").value.trim()||"edgg");}catch(e){}toast("Saved — reloading to connect");setTimeout(()=>location.reload(),600);return;}
@@ -5145,11 +5145,11 @@ async function deleteAccount(u){S.accounts.delete(u);if(S.db){try{await S.db.doc
 function sessionLoad(){try{return JSON.parse(localStorage.getItem("edgg.session")||sessionStorage.getItem("edgg.session")||"null");}catch(e){return null;}}
 function sessionSave(x,temp){try{if(x){if(temp){sessionStorage.setItem("edgg.session",JSON.stringify(x));localStorage.removeItem("edgg.session");}else{localStorage.setItem("edgg.session",JSON.stringify(x));sessionStorage.removeItem("edgg.session");}}else{localStorage.removeItem("edgg.session");sessionStorage.removeItem("edgg.session");}}catch(e){}}
 /* ===================== v4.57 — Secure sign-in (Firebase Authentication + locked database rules) for Data Privacy Act compliance ===================== */
-const SEC_DOMAIN="wrldcapitalholdings.com";
+const SEC_DOMAINS=["wrldcapitalholdings.com","asiawideland.com"];const SEC_DOMAIN=SEC_DOMAINS[0];const SEC_DOMS_TXT=SEC_DOMAINS.map(d=>"@"+d).join(" or ");
 const GUEST_COLLS=["tasks","projects","issues","seats","events","assets","facilities","upkeep","targets","org"];
 function secOn(){return typeof FA!=="undefined"&&!!FA;}
 function emailKey(e){return String(e||"").trim().toLowerCase().replace(/\./g,",");}
-function validCoEmail(e){return new RegExp("^[^@\\s]+@"+SEC_DOMAIN.replace(/\./g,"\\.")+"$","i").test(String(e||"").trim());}
+function validCoEmail(e){const m=String(e||"").trim().toLowerCase().match(/^[^@\s]+@([^@\s]+)$/);return !!m&&SEC_DOMAINS.includes(m[1]);}
 function accByEmail(e){e=String(e||"").trim().toLowerCase();return e?[...S.accounts.values()].find(a=>(a.email||"").toLowerCase()===e)||null:null;}
 function authErrText(e){const c=(e&&e.code)||"";return c.includes("wrong-password")||c.includes("invalid-credential")||c.includes("invalid-login")?"Wrong e-mail or password.":c.includes("user-not-found")?"No secure sign-in exists for this e-mail yet — use “First time? Activate”.":c.includes("email-already-in-use")?"This e-mail is already activated — sign in, or use “Forgot password”.":c.includes("weak-password")?"Use a stronger password (8+ characters).":c.includes("too-many-requests")?"Too many tries — wait a few minutes, or reset your password.":c.includes("operation-not-allowed")?"Secure sign-in is not switched on yet in Firebase (Authentication → Sign-in method). Tell the Director.":c.includes("network")?"No connection — check the internet.":(e&&e.message)||"Something went wrong.";}
 async function authChanged(u){S.authUser=u?{uid:u.uid,email:(u.email||"").toLowerCase(),verified:!!u.emailVerified,anon:!!u.isAnonymous}:null;S.authErr="";
@@ -5167,7 +5167,7 @@ function secAutoLogin(){if(S.user||!S.authUser||S.authUser.anon||!S.authUser.ver
  if(!S._authStamped){S._authStamped=true;const dev=(navigator.userAgent.match(/(Android|iPhone|iPad|Windows|Macintosh)/)||["","device"])[1];const n=Object.assign({},a,{lastLogin:nowISO(),authUid:S.authUser.uid,authVerified:true,logins:((a.logins||[]).concat([{ts:nowISO(),device:dev+" · secure"}])).slice(-30)});S.accounts.set(n.username,n);if(S.db)S.db.doc("accounts/"+n.username).set(n).catch(()=>{});}
  S.tab=a.level==="director"?"board":S.tab||"mytasks";}
 async function secSignIn(email,pw){await FA.signInWithEmailAndPassword(email.trim(),pw);const u=FA.currentUser;if(u&&!u.emailVerified){try{await u.reload();}catch(e){}}}
-async function secActivate(email,pw){email=email.trim().toLowerCase();if(!validCoEmail(email))throw {message:"Use your company e-mail (@"+SEC_DOMAIN+")."};if(pw.length<8)throw {message:"Use at least 8 characters."};
+async function secActivate(email,pw){email=email.trim().toLowerCase();if(!validCoEmail(email))throw {message:"Use your company e-mail ("+SEC_DOMS_TXT+")."};if(pw.length<8)throw {message:"Use at least 8 characters."};
  const cred=await FA.createUserWithEmailAndPassword(email,pw);S.secMode="in";try{await cred.user.sendEmailVerification({url:location.href.split("#")[0]});}catch(e){}}
 function secLoginHTML(){const au=S.authUser;const mode=S.secMode||"in";
  if(au&&!au.anon&&!au.verified)return `<h2>Check your company inbox</h2><p>We sent a verification link to <b>${esc(au.email)}</b>. Open it, then come back and press the button below. (Look in Junk/Spam too — the sender is <i>noreply@…firebaseapp.com</i>.)</p><div class="err" id="sx_err" hidden></div><div class="row" style="gap:8px;flex-wrap:wrap;margin-top:10px"><button class="btn primary" id="sx_verified" type="button">I've verified — continue</button><button class="btn" id="sx_resend" type="button">Resend the link</button><button class="btn ghost" id="sx_out" type="button">Use another e-mail</button></div>`;
@@ -5204,7 +5204,7 @@ function secRules(){const S_="auth != null && auth.token.email_verified == true 
   "$coll":{".write":S_,".read":`(${G_}) && (${GUEST_COLLS.map(c=>`$coll == '${c}'`).join(" || ")})`}
  }}},null,2);}
 async function secProbe(){const cfg=(typeof getCfg==="function"&&getCfg())||null;if(!cfg||!cfg.databaseURL)return;try{const r=await fetch(cfg.databaseURL.replace(/\/$/,"")+"/"+workspace()+".json?shallow=true",{cache:"no-store"});S.secExposed=r.ok;S.secProbeAt=nowISO();}catch(e){S.secExposed=null;}render();}
-async function secSaveEmails(rows){const ws=workspace();let n=0;for(let [u,em] of rows){const a=S.accounts.get(u);if(!a)continue;em=String(em||"").trim().toLowerCase();if(em&&!validCoEmail(em)){toast(`${a.name}: ${em} is not an @${SEC_DOMAIN} e-mail — skipped`);continue;}if((a.email||"")===em)continue;
+async function secSaveEmails(rows){const ws=workspace();let n=0;for(let [u,em] of rows){const a=S.accounts.get(u);if(!a)continue;em=String(em||"").trim().toLowerCase();if(em&&!validCoEmail(em)){toast(`${a.name}: ${em} is not a company e-mail (${SEC_DOMS_TXT}) — skipped`);continue;}if((a.email||"")===em)continue;
   const old=a.email;const na=Object.assign({},a,{email:em||""});S.accounts.set(u,na);await S.db.doc("accounts/"+u).set(na);
   try{if(old)await FB.ref(ws+"/emailidx/"+emailKey(old)).remove();if(em)await FB.ref(ws+"/emailidx/"+emailKey(em)).set(u);}catch(e){}n++;}
  toast(n?`${n} e-mail${n===1?"":"s"} saved`:"No changes");render();}
@@ -5214,7 +5214,7 @@ function secPanel(){const accs=[...S.accounts.values()].filter(a=>!a.disabled).s
  return `<div class="panel" style="grid-column:1/-1"><div class="ph"><h2>🔐 Data privacy & sign-in security</h2><span class="small muted">Data Privacy Act (RA 10173) · NPC Circular 2023-06 — access control at the database, not just on screen</span><span class="spacer"></span>${live?exp:""}${live?` <button class="btn sm ghost" type="button" data-secprobe="1">Check now</button>`:""}</div><div class="pb">
   ${live?"":`<div class="note warn">Secure sign-in works on the live (shared) site only.</div>`}
   <ol class="small" style="line-height:1.7;margin:0 0 10px 18px">
-   <li><b>Link e-mails</b> — enter each person's @${SEC_DOMAIN} e-mail below and save (${withEm}/${accs.length} done).</li>
+   <li><b>Link e-mails</b> — enter each person's company e-mail (${SEC_DOMS_TXT}) below and save (${withEm}/${accs.length} done).</li>
    <li><b>Switch on sign-in in Firebase</b> — Console → Authentication → Get started → Sign-in method: enable <b>Email/Password</b> and <b>Anonymous</b> (for guests). Settings → Authorized domains: add <code>${esc(location.hostname||"pgecruz-edgg.github.io")}</code>.</li>
    <li><b>Everyone activates, you approve</b> — they use “Sign in with company e-mail” → First time? Activate, then click the e-mail link. Each activation appears here as ⏳ — <b>approve only after confirming with the person</b> (Microsoft 365 link scanners can “click” verification links automatically, so the e-mail alone does not prove who activated). ${[...(S.authz||new Map()).values()].filter(v=>v&&v.approved===true).length}/${accs.length} approved. <b>You first.</b></li>
    <li><b>Lock the database</b> — Console → Realtime Database → Rules → paste the rules below → Publish. Then press “Check now”: it must show 🔒 Locked. Keep the old rules in a note in case you need to roll back.</li>
