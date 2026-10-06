@@ -277,7 +277,7 @@ table.reg td.t{font-weight:600;cursor:pointer}
 .report .rf{margin-top:18px;font-size:11px;color:var(--muted);border-top:1px solid var(--line);padding-top:8px}
 
 /* modal */
-.ov{position:fixed;inset:0;background:rgba(30,20,14,.55);z-index:50;display:flex;align-items:flex-start;justify-content:center;padding:4vh 12px;overflow:auto}
+.ov{position:fixed;inset:0;background:rgba(30,20,14,.55);z-index:300;display:flex;align-items:flex-start;justify-content:center;padding:4vh 12px;overflow:auto}
 .dlg{background:var(--surface);border:1px solid var(--line2);border-radius:8px;box-shadow:var(--shadow);width:min(920px,100%);max-height:92vh;display:flex;flex-direction:column}
 .dlg.narrow{width:min(460px,100%)}
 .dlg .dh{display:flex;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid var(--line)}
@@ -556,7 +556,7 @@ table.reg tr.total td{font-weight:700;border-top:2px solid var(--line2,var(--lin
 .gate select{width:100%;margin-bottom:12px;padding:10px}
 
 /* toast */
-.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--espresso);color:#F6EFE3;padding:10px 16px;border-radius:6px;z-index:80;font-weight:600;box-shadow:var(--shadow);max-width:90vw}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--espresso);color:#F6EFE3;padding:10px 16px;border-radius:6px;z-index:4000;font-weight:600;box-shadow:var(--shadow);max-width:90vw}
 .esc{background:var(--bad-bg);border:1px solid var(--bad);border-radius:var(--radius);padding:10px 12px;margin-bottom:8px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 .esc b{color:var(--bad)}
 .esc .spacer{flex:1}
@@ -2311,7 +2311,7 @@ function vSettings(){
   <div class="panel"><div class="ph"><h2>Display</h2></div><div class="pb"><div class="row"><button class="btn sm" data-st="theme">🎨 Appearance — colours, mode, text size</button><button class="btn sm" data-st="fullscreen">⤢ Full screen</button><button class="btn sm" data-st="switchrole">Switch role</button></div><p class="small muted" style="margin:10px 0 0">Version ${APP_VERSION} · EDGG Monitoring · WRLD Capital Holdings</p></div></div>
   </div></div>`;
 }
-const APP_VERSION="4.89 (website)";
+const APP_VERSION="4.90 (website)";
 async function settingsAction(a){
   if(a==="savecfg"){let cfg;try{const t=$("#st_cfg").value.trim().replace(/^const\s+firebaseConfig\s*=\s*/,"").replace(/;\s*$/,"");cfg=Function("return ("+t+")")();}catch(e){toast("That is not a valid config object.");return;}if(!cfg||!cfg.databaseURL){toast("The config needs a databaseURL — enable Realtime Database first.");return;}
     try{localStorage.setItem(CFG_KEY,JSON.stringify(cfg));localStorage.setItem(WS_KEY,$("#st_ws").value.trim()||"edgg");}catch(e){}toast("Saved — reloading to connect");setTimeout(()=>location.reload(),600);return;}
@@ -5504,7 +5504,7 @@ function applyAppearance(a){a=a||appearance();const key=JSON.stringify(a);if(key
   if(a.mode==="light"||a.mode==="dark")r.setAttribute("data-theme",a.mode);else r.removeAttribute("data-theme");
   const sc=SCHEMES[a.scheme]||SCHEMES.earth;const L=varsCss(sc.light,a.accent),D=varsCss(sc.dark,a.accent);const z={m:1,l:1.1,xl:1.22}[a.size]||1;
   let el=document.getElementById("userTheme");if(!el){el=document.createElement("style");el.id="userTheme";document.head.appendChild(el);}
-  el.textContent=`${L?`:root{${L}}`:""}${D?`@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){${D}}}:root[data-theme="dark"]{${D}}`:""}.side{background:linear-gradient(180deg,var(--espresso) 0%,var(--side2,#2A1D15) 100%)}${z!==1?`.mainwrap,#modals .dlg{zoom:${z}}`:""}`;
+  el.textContent=`${L?`:root{${L}}`:""}${D?`@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){${D}}}:root[data-theme="dark"]{${D}}`:""}.side{background:linear-gradient(180deg,var(--espresso) 0%,var(--side2,#2A1D15) 100%)}${z!==1?`@media (hover:hover) and (pointer:fine){.mainwrap,#modals .dlg{zoom:${z}}}@media (pointer:coarse),(hover:none){html{-webkit-text-size-adjust:${Math.round(z*100)}%;text-size-adjust:${Math.round(z*100)}%}}`:""}`;
   try{localStorage.setItem("edgg.appearance",key);if(S.user&&S.user.username)localStorage.setItem("edgg.appearance."+S.user.username+(appearSlot()==="appearance"?"":".assistant"),key);localStorage.setItem("edgg.theme",a.mode==="system"?"":a.mode);}catch(e){}}
 async function setAppearance(patch){const a=Object.assign(appearance(),patch);applyAppearance(a);const acc=S.user&&S.accounts.get(S.user.username);if(acc&&!viewingAs()){const n=JSON.parse(JSON.stringify(acc));n[appearSlot()]=a;S.accounts.set(n.username,n);if(S.db){try{await S.db.doc("accounts/"+n.username).set(n);}catch(e){}}}openAppearance();}
 function schemeSwatch(k,sc,on){const dark=document.documentElement.getAttribute("data-theme")==="dark"||(!document.documentElement.getAttribute("data-theme")&&matchMedia("(prefers-color-scheme: dark)").matches);const base=dark?{espresso:"#3B2A20",accent:"#C9A46A",bg:"#1E1712",surface:"#2A2119",text:"#F0E7DA"}:{espresso:"#3B2A20",accent:"#8A6A3E",bg:"#F3EDE2",surface:"#FBF8F2",text:"#2E211A"};const v=Object.assign({},base,dark?sc.dark:sc.light);
@@ -6180,6 +6180,8 @@ async function accountAction(a){
 
 
 /* ---- v4.78 drag-to-pan for wide tables and boards (mouse); touch pans natively ---- */
+/* v4.90 — phones: tapping a date/time box always opens the date picker */
+document.addEventListener("click",e=>{const i=e.target;if(!i||!i.matches||!i.matches('input[type="date"],input[type="time"],input[type="datetime-local"],input[type="month"]'))return;if(i.disabled||i.readOnly)return;if(!(window.matchMedia&&matchMedia("(pointer:coarse)").matches))return;try{if(i.showPicker)i.showPicker();}catch(x){}},true);
 (function panInit(){const isX=el=>{if(!el||el.nodeType!==1)return false;const cs=getComputedStyle(el);return /(auto|scroll)/.test(cs.overflowX)&&el.scrollWidth>el.clientWidth+4;};
   const findPan=t=>{let el=t;while(el&&el!==document.body){if(isX(el))return el;el=el.parentElement;}return null;};
   const skip=t=>t.closest("input,select,textarea,button,a,label,[contenteditable],.btn,.dlg .rowline input,option,summary,[draggable=true]");
